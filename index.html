@@ -1173,19 +1173,39 @@ async function runDialog(){
 /* ---------- voice conversion (Seed-VC) ---------- */
 let vcSrc=null;
 const pickVC=eps=>eps.find(e=>pnames(e).includes("f0_condition")) || eps.find(e=>pnames(e).some(n=>/source/.test(n)) && pnames(e).some(n=>/target|reference/.test(n)));
+const sysWavCache=new Map();
+async function voiceFileFor(v, api){
+  if(!v.builtin) return await upload(v.wav, api, "target.wav");
+  try{
+    if(!sysWavCache.has(v.id)){ const r=await fetch(v.url); if(!r.ok) throw 0; sysWavCache.set(v.id,(await toWav(await r.blob(),20)).wav); }
+    return await upload(sysWavCache.get(v.id), api, "target.wav");
+  }catch{ return remote(v.url); }
+}
+function splitPoints(buf, target=15, minLen=8, maxLen=20){
+  const d=buf.duration; if(d<=maxLen) return [[0,d]];
+  const ch=buf.getChannelData(0), sr=buf.sampleRate, win=Math.floor(sr*0.05);
+  const energy=t=>{ const i=Math.floor(t*sr); let e=0; for(let k=i;k<i+win&&k<ch.length;k++) e+=ch[k]*ch[k]; return e; };
+  const cuts=[]; let st=0;
+  while(d-st>maxLen){
+    let best=st+target, bestE=Infinity;
+    for(let t=st+minLen;t<=st+maxLen;t+=0.05){ const e=energy(t); if(e<bestE){ bestE=e; best=t; } }
+    cuts.push([st,best]); st=best;
+  }
+  cuts.push([st,d]); return cuts;
+}
 async function convertVoice(srcWav, v){
   stage="חיבור לשרת ההמרה"; setGen("מתחבר לשרת ההמרה…");
   const sp=await connectSpace(VC_BASE, pickVC, "שרת ההמרה");
-  stage="העלאת ההקלטה";
-  const src=await upload(srcWav, sp.api, "source.wav");
-  const tgt= v.builtin ? remote(v.url) : await upload(v.wav, sp.api, "target.wav");
-  stage="המרה";
+  stage="העלאת הקול שנבחר";
+  const tgt=await voiceFileFor(v, sp.api);
+  const buf=await decode(srcWav);
+  const parts=splitPoints(buf);
   const sing=$("vcSing").checked;
-  const data=sp.params.map(p=>{
+  const mk=(src,steps)=>sp.params.map(p=>{
     const n=p.parameter_name||"";
     if(/source/.test(n)) return src;
     if(/target|reference/.test(n)) return tgt;
-    if(/diffusion/.test(n)) return +$("vcSteps").value;
+    if(/diffusion/.test(n)) return steps;
     if(/pitch/.test(n)) return +$("vcPitch").value;
     if(n==="f0_condition") return sing || +$("vcPitch").value!==0;
     if(/auto_f0/.test(n)) return !sing;
@@ -1193,12 +1213,26 @@ async function convertVoice(srcWav, v){
     if(/anonym/.test(n)) return false;
     return p.parameter_default ?? null;
   });
-  let out;
-  try{ out=await callAny(data, sp.api, sp.fn, sp.cfg); }
-  catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); out=await callAny(data, sp.api, sp.fn, sp.cfg); }
-  const url=audioUrl(out, sp.api);
-  if(!url) throw new Error("לא התקבל קובץ שמע");
-  return await fetchBlob(url);
+  const outs=[]; const steps=+$("vcSteps").value;
+  for(let i=0;i<parts.length;i++){
+    const [a,b]=parts[i];
+    const label = parts.length>1 ? `קטע ${i+1} מתוך ${parts.length}` : "ההקלטה";
+    stage=`המרה (${label})`; setGen(`ממיר את ${label}…`);
+    const piece = parts.length>1 ? (await sliceWav(buf,a,b)).wav : srcWav;
+    const src=await upload(piece, sp.api, `source${i}.wav`);
+    let out;
+    try{ out=await callAny(mk(src,steps), sp.api, sp.fn, sp.cfg); }
+    catch(e1){
+      if(!/השרת דחה/.test(e1.message)) throw e1;
+      setGen(`השרת לא הצליח עם ${label}. מנסה שוב בהגדרה קלה יותר (איכות 10)…`);
+      try{ out=await callAny(mk(src,Math.min(10,steps)), sp.api, sp.fn, sp.cfg); }
+      catch(e2){ const e=new Error(`${errText(e2)}. נסה קטע קצר יותר, קול אחר מהקולות שלך, או חכה כמה דקות שהמכסה תתמלא.`); throw e; }
+    }
+    const url=audioUrl(out, sp.api);
+    if(!url) throw new Error("לא התקבל קובץ שמע");
+    outs.push(await fetchBlob(url));
+  }
+  return outs.length===1 ? outs[0] : await concatWav(outs, 0);
 }
 function setVc(msg,cls=""){ const s=$("vcStatus"); s.textContent=msg; s.className="status "+cls; }
 let vcBuf=null, vcBlob=null;
