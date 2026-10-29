@@ -441,7 +441,8 @@ async function upload(blob, api=API, name="voice.wav"){
 const remote = (url)=>({ path:url, url, orig_name:url.split("/").pop(), meta:{_type:"gradio.FileData"} });
 async function callTTS(data, api=API, fn=FN){
   const r=await http(`${api}/call/${fn}`,{method:"POST",headers:auth({"Content-Type":"application/json"}),body:JSON.stringify({data})},"שליחת הבקשה");
-  const { event_id } = await r.json();
+  let j; try{ j=await r.json(); }catch{ const e=new Error("NO_CALL_API"); e.noCall=true; throw e; }
+  const { event_id } = j;
   const res=await http(`${api}/call/${fn}/${event_id}`,{headers:auth()},"קבלת התוצאה");
   const txt=await res.text();
   const blocks=txt.split(/\n\n/); let ev="", payload=null, lastGen=null;
@@ -453,6 +454,44 @@ async function callTTS(data, api=API, fn=FN){
   return payload;
 }
 
+async function callQueue(api, fn, data){
+  const cfgR=await http(api+"/config",{headers:auth()},"קריאת הגדרות השרת");
+  const cfg=await cfgR.json();
+  const deps=cfg.dependencies||[];
+  let idx=deps.findIndex(d=>d.api_name===fn);
+  if(idx<0) idx=deps.findIndex(d=>d.api_name && d.api_name!==false && (d.inputs||[]).length===data.length);
+  if(idx<0) throw new Error("לא נמצאה פעולת ההמרה בהגדרות השרת");
+  const dep=deps[idx]; const fn_index = dep.id ?? idx;
+  const session_hash=Math.random().toString(36).slice(2,13);
+  await http(api+"/queue/join",{method:"POST",headers:auth({"Content-Type":"application/json"}),
+    body:JSON.stringify({data, fn_index, session_hash, event_data:null, trigger_id: dep.targets?.[0]?.[0] ?? null})},"כניסה לתור");
+  const res=await http(`${api}/queue/data?session_hash=${session_hash}`,{headers:auth({Accept:"text/event-stream"})},"קבלת התוצאה");
+  const reader=res.body.getReader(); const dec=new TextDecoder(); let buf="", last=null;
+  while(true){
+    const {value,done}=await reader.read(); if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    let i;
+    while((i=buf.indexOf("\n\n"))>=0){
+      const chunk=buf.slice(0,i); buf=buf.slice(i+2);
+      const line=chunk.split("\n").find(l=>l.startsWith("data:")); if(!line) continue;
+      let m; try{ m=JSON.parse(line.slice(5)); }catch{ continue; }
+      if(m.msg==="process_generating" && m.output?.data) last=m.output.data;
+      if(m.msg==="estimation" && m.rank>0) setGen(`ממתין בתור… מקום ${m.rank+1}`);
+      if(m.msg==="process_completed"){
+        try{ reader.cancel(); }catch{}
+        if(m.success===false || (m.output?.error && !m.output?.data)){ throw new Error("השרת דחה את הבקשה: "+(m.output?.error||m.title||m.message||"בלי פירוט. כנראה עומס או מכסה חינמית שנגמרה")); }
+        return m.output?.data || last;
+      }
+      if(m.msg==="unexpected_error"||m.msg==="queue_full"){ try{reader.cancel();}catch{} throw new Error(m.msg==="queue_full"?"השרת עמוס (התור מלא)":"השרת דחה את הבקשה: "+(m.message||"שגיאה לא צפויה")); }
+    }
+  }
+  if(last) return last;
+  throw new Error("החיבור לשרת נסגר לפני שהתקבלה תוצאה");
+}
+async function callAny(data, api, fn){
+  try{ return await callTTS(data, api, fn); }
+  catch(e){ if(e.noCall || /השרת החזיר (404|405)/.test(e.message)) return await callQueue(api, fn, data); throw e; }
+}
 function audioUrl(data, api){
   const arr=Array.isArray(data)?data:[data];
   for(let i=arr.length-1;i>=0;i--){ const o=arr[i]; if(!o) continue; if(typeof o==="string") return o; if(o.url) return o.url; if(o.path) return `${api}/file=${o.path}`; }
@@ -571,8 +610,8 @@ async function runVC(){
       return p.parameter_default ?? null;
     });
     let out;
-    try{ out=await callTTS(data, sp.api, sp.fn); }
-    catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); out=await callTTS(data, sp.api, sp.fn); }
+    try{ out=await callAny(data, sp.api, sp.fn); }
+    catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); out=await callAny(data, sp.api, sp.fn); }
     const url=audioUrl(out, sp.api);
     if(!url) throw new Error("לא התקבל קובץ שמע");
     await saveTake(url, `המרת הקלטה של ${vcSrc.secs.toFixed(0)} שנ'`, v.name, t0);
