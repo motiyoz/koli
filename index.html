@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161f">
+<title>קולי</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: single column studio — voice shelf on top, script + render below, sticky action bar at the bottom */
+:root{
+  --bg:#f3f2ee; --surface:#ffffff; --ink:#1b1d27; --muted:#646877; --line:#dcdbe3;
+  --accent:#e0562b; --accent-ink:#ffffff; --signal:#2a7d5f; --warn:#b5361b;
+  --display:"Secular One","Assistant",system-ui,sans-serif;
+  --body:"Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#14161f; --surface:#1d2030; --ink:#eeedf4; --muted:#9a9db0; --line:#2e3246;
+  --accent:#ff7a4d; --accent-ink:#1a0d07; --signal:#5cc79d; --warn:#ff8a6b; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);
+  padding:env(safe-area-inset-top,0) max(16px,env(safe-area-inset-right,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:22px;padding-top:18px}
+header{display:flex;align-items:center;gap:12px}
+.mark{width:42px;height:42px;border-radius:12px;background:var(--accent);display:grid;place-items:center}
+.mark svg{width:26px;height:26px}
+h1{font:400 1.9rem/1 var(--display);margin:0}
+.tag{color:var(--muted);font-size:.9rem;margin:2px 0 0}
+h2{font:400 1.15rem/1.2 var(--display);margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+h2 small{font:600 .78rem var(--body);color:var(--muted);letter-spacing:.02em}
+section{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.voices{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
+.voice{flex:0 0 auto;scroll-snap-align:start;border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:12px;padding:10px 12px;min-width:120px;text-align:right;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.voice b{font-weight:700}
+.voice span{font-size:.8rem;color:var(--muted)}
+.voice[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.voice.add{border-style:dashed;justify-content:center;align-items:center;color:var(--accent);font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:700 1rem var(--body);border-radius:12px;padding:12px 16px;border:1.5px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.voice:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+textarea{width:100%;min-height:130px;resize:vertical;font:1.05rem/1.6 var(--body);color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:12px;padding:12px}
+.count{font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted)}
+.count.over{color:var(--warn);font-weight:700}
+label.field{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.92rem}
+input[type=text]{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.slider{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;font-size:.9rem}
+.slider output{font-variant-numeric:tabular-nums;color:var(--muted)}
+.slider input{grid-column:1/-1}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.9rem;background:var(--bg);border-radius:10px;padding:10px}
+.consent input{margin-top:4px;width:18px;height:18px;accent-color:var(--accent)}
+.status{font-size:.92rem;color:var(--muted);min-height:1.4em}
+.status.err{color:var(--warn)}
+.status.ok{color:var(--signal)}
+canvas.wave{width:100%;height:56px;display:block}
+.take{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.take:first-child{border-top:0;margin-top:0;padding-top:0}
+.take p{margin:0;font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
+audio{width:100%}
+.take a{font-weight:700;color:var(--accent);font-size:.9rem}
+.empty{color:var(--muted);font-size:.92rem;margin:0}
+details summary{cursor:pointer;font-weight:700;font-size:.92rem;color:var(--muted)}
+details[open] summary{margin-bottom:10px}
+.bar{position:fixed;inset:auto 0 0;background:var(--surface);border-top:1px solid var(--line);
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar .btn{width:100%;max-width:560px;margin:0 auto;display:block;font-size:1.1rem;padding:14px}
+.panel{display:flex;flex-direction:column;gap:12px}
+footer{font-size:.8rem;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="color:var(--accent-ink)">
+        <path d="M4 10v6M9 6v14M13 9v8M17 4v18M22 10v6"/></svg>
+    </div>
+    <div>
+      <h1>קולי</h1>
+      <p class="tag">שיבוט קול בעברית, ישר מהטלפון</p>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-voices">
+    <h2 id="h-voices">הקולות שלי <small id="voiceCount"></small></h2>
+    <div class="voices" id="voices" role="group" aria-label="בחירת קול"></div>
+    <button class="btn" id="delVoice" type="button" hidden style="margin-top:10px;padding:6px 12px;font-size:.85rem"></button>
+  </section>
+
+  <section id="addPanel" hidden aria-labelledby="h-add">
+    <h2 id="h-add">קול חדש <small>10–20 שניות של דיבור ברור</small></h2>
+    <div class="panel">
+      <label class="field" for="voiceName">שם הקול
+        <input type="text" id="voiceName" placeholder="למשל: הקול שלי" maxlength="30">
+      </label>
+      <div class="row">
+        <button class="btn" id="recBtn" type="button">הקלטה</button>
+        <label class="btn" for="fileIn" style="display:inline-block">העלאת קובץ שמע</label>
+        <input type="file" id="fileIn" accept="audio/*" hidden>
+      </div>
+      <canvas class="wave" id="wave" width="560" height="56" aria-hidden="true"></canvas>
+      <p class="status" id="addStatus">דבר בשקט יחסי, בלי מוזיקה ברקע.</p>
+      <label class="consent" for="consent">
+        <input type="checkbox" id="consent">
+        <span>זה הקול שלי, או שיש לי הסכמה מפורשת של בעל הקול לשבט אותו.</span>
+      </label>
+      <div class="row">
+        <button class="btn primary" id="saveVoice" type="button" disabled>שמירת הקול</button>
+        <button class="btn" id="cancelAdd" type="button">ביטול</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-script">
+    <h2 id="h-script">מה להגיד <small class="count" id="count">0 / 300</small></h2>
+    <textarea id="text" aria-label="טקסט להקראה">שלום! זו הקלטה ראשונה שלי עם קולי. ככה נשמע הקול המשובט שלי בעברית.</textarea>
+    <details>
+      <summary>כיוון עדין</summary>
+      <div class="panel">
+        <div class="slider"><label for="exag">הבעה</label><output id="exagOut">0.5</output>
+          <input type="range" id="exag" min="0.25" max="2" step="0.05" value="0.5"></div>
+        <div class="slider"><label for="pace">קצב ויציבות</label><output id="paceOut">0.5</output>
+          <input type="range" id="pace" min="0.2" max="1" step="0.05" value="0.5"></div>
+        <div class="slider"><label for="temp">גיוון</label><output id="tempOut">0.8</output>
+          <input type="range" id="temp" min="0.3" max="1.5" step="0.05" value="0.8"></div>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-takes">
+    <h2 id="h-takes">הקלטות <small>נשמרות רק במכשיר הזה</small></h2>
+    <p class="status" id="genStatus" aria-live="polite"></p>
+    <div id="takes"><p class="empty">עוד אין הקלטות. בחר קול, כתוב טקסט ולחץ "הפקה".</p></div>
+  </section>
+
+  <footer>מנוע: Chatterbox Multilingual (קוד פתוח) דרך Hugging Face. לשימוש עם קולות שקיבלת עליהם הסכמה בלבד.</footer>
+</main>
+
+<div class="bar"><button class="btn primary" id="genBtn" type="button">הפקה</button></div>
+
+<script type="module">
+import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client@2.1.0/dist/index.min.js";
+
+const SPACE = "ResembleAI/Chatterbox-Multilingual-TTS-V3";
+const ENDPOINT = "/generate_tts_audio";
+const MAX = 300;
+const $ = id => document.getElementById(id);
+
+/* ---------- storage (IndexedDB, falls back to memory) ---------- */
+const mem = { voices: [], takes: [] };
+let dbp = null;
+function db(){
+  if (dbp) return dbp;
+  dbp = new Promise((res) => {
+    try{
+      const r = indexedDB.open("koli", 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore("voices",{keyPath:"id"}); r.result.createObjectStore("takes",{keyPath:"id"}); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    }catch{ res(null); }
+  });
+  return dbp;
+}
+async function all(store){
+  const d = await db(); if(!d) return mem[store];
+  return new Promise(res=>{ try{ const q=d.transaction(store).objectStore(store).getAll(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(mem[store]); }catch{ res(mem[store]); } });
+}
+async function put(store,obj){
+  mem[store] = mem[store].filter(x=>x.id!==obj.id).concat(obj);
+  const d = await db(); if(!d) return;
+  try{ d.transaction(store,"readwrite").objectStore(store).put(obj); }catch{}
+}
+async function del(store,id){
+  mem[store] = mem[store].filter(x=>x.id!==id);
+  const d = await db(); if(!d) return;
+  try{ d.transaction(store,"readwrite").objectStore(store).delete(id); }catch{}
+}
+
+/* ---------- audio helpers: anything -> mono 24k WAV, max 20s ---------- */
+async function toWav(blob){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC();
+  const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+  ctx.close?.();
+  const rate = 24000, secs = Math.min(buf.duration, 20);
+  const off = new OfflineAudioContext(1, Math.ceil(secs*rate), rate);
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
+  const out = await off.startRendering();
+  const data = out.getChannelData(0);
+  const ab = new ArrayBuffer(44 + data.length*2), v = new DataView(ab);
+  const w = (o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4,36+data.length*2,true); w(8,"WAVE"); w(12,"fmt ");
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,rate,true);
+  v.setUint32(28,rate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,"data"); v.setUint32(40,data.length*2,true);
+  for(let i=0;i<data.length;i++){ const s=Math.max(-1,Math.min(1,data[i])); v.setInt16(44+i*2, s<0?s*0x8000:s*0x7fff, true); }
+  return { wav: new Blob([ab],{type:"audio/wav"}), secs: buf.duration, peaks: peaks(data) };
+}
+function peaks(data){ const n=80, step=Math.floor(data.length/n)||1, p=[]; for(let i=0;i<n;i++){ let m=0; for(let j=i*step;j<(i+1)*step&&j<data.length;j++) m=Math.max(m,Math.abs(data[j])); p.push(m);} return p; }
+function drawWave(p){
+  const c=$("wave"), g=c.getContext("2d"), css=getComputedStyle(document.documentElement);
+  g.clearRect(0,0,c.width,c.height); g.fillStyle=css.getPropertyValue("--accent").trim()||"#e0562b";
+  if(!p) return; const bw=c.width/p.length;
+  p.forEach((h,i)=>{ const hh=Math.max(2,h*c.height); g.fillRect(c.width-(i+1)*bw+1,(c.height-hh)/2,bw-2,hh); });
+}
+
+/* ---------- voices ---------- */
+const DEFAULT_VOICE = { id:"default", name:"קול לדוגמה", note:"גבר, עברית", builtin:true };
+let voices = [], selected = "default", pending = null;
+
+async function loadVoices(){
+  voices = [DEFAULT_VOICE, ...(await all("voices")).sort((a,b)=>a.created-b.created)];
+  try{ selected = localStorage.getItem("koli.voice") || selected; }catch{}
+  if(!voices.find(v=>v.id===selected)) selected="default";
+  renderVoices();
+}
+function renderVoices(){
+  const box=$("voices"); box.textContent="";
+  voices.forEach(v=>{
+    const b=document.createElement("button"); b.type="button"; b.className="voice";
+    b.setAttribute("aria-pressed", String(v.id===selected));
+    const n=document.createElement("b"); n.textContent=v.name;
+    const s=document.createElement("span"); s.textContent = v.builtin ? v.note : `דגימה של ${v.secs.toFixed(0)} שנ'`;
+    b.append(n,s);
+    b.onclick=()=>{ selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{} renderVoices(); };
+    box.append(b);
+  });
+  const add=document.createElement("button"); add.type="button"; add.className="voice add"; add.textContent="+ קול חדש";
+  add.onclick=openAdd; box.append(add);
+  $("voiceCount").textContent = `${voices.length-1} משלך`;
+  const cur=voices.find(v=>v.id===selected), rm=$("delVoice");
+  rm.hidden = !cur || !!cur.builtin; rm.textContent = cur ? `מחיקת "${cur.name}"` : "";
+  rm.dataset.armed="";
+}
+$("delVoice").onclick=async()=>{
+  const rm=$("delVoice");
+  if(!rm.dataset.armed){ rm.dataset.armed="1"; rm.textContent="ללחוץ שוב לאישור המחיקה"; return; }
+  await del("voices",selected); selected="default"; try{localStorage.setItem("koli.voice","default");}catch{} loadVoices();
+};
+
+/* ---------- add voice panel ---------- */
+function openAdd(){ $("addPanel").hidden=false; pending=null; drawWave(null); $("voiceName").value=""; $("consent").checked=false; updateSave(); $("addPanel").scrollIntoView({behavior:"smooth"}); }
+$("cancelAdd").onclick=()=>{ stopRec(); $("addPanel").hidden=true; };
+function setAdd(msg,cls=""){ const s=$("addStatus"); s.textContent=msg; s.className="status "+cls; }
+function updateSave(){ $("saveVoice").disabled = !(pending && $("consent").checked && $("voiceName").value.trim()); }
+["consent","voiceName"].forEach(id=>$(id).addEventListener("input",updateSave));
+
+async function takeSample(blob){
+  try{
+    setAdd("מעבד את הדגימה…");
+    const r = await toWav(blob);
+    if(r.secs < 5){ setAdd(`הדגימה קצרה מדי (${r.secs.toFixed(1)} שנ'). צריך לפחות 5 שניות, עדיף 10.`,"err"); pending=null; drawWave(r.peaks); updateSave(); return; }
+    pending = r; drawWave(r.peaks);
+    setAdd(r.secs>20 ? `נלקחו 20 השניות הראשונות מתוך ${r.secs.toFixed(0)}.` : `דגימה של ${r.secs.toFixed(1)} שניות מוכנה.`,"ok");
+  }catch(e){ pending=null; setAdd("לא הצלחתי לקרוא את הקובץ. נסה קובץ MP3, WAV או M4A.","err"); }
+  updateSave();
+}
+$("fileIn").onchange=e=>{ const f=e.target.files[0]; if(f){ if(!$("voiceName").value) $("voiceName").value=f.name.replace(/\.[^.]+$/,"").slice(0,30); takeSample(f);} e.target.value=""; };
+
+let rec=null, chunks=[], recTimer=null;
+async function startRec(){
+  if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ setAdd("ההקלטה לא זמינה כאן. הקלט בהקלטת קול של הטלפון והעלה את הקובץ.","err"); return; }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    chunks=[]; rec=new MediaRecorder(stream);
+    rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    rec.onstop=()=>{ stream.getTracks().forEach(t=>t.stop()); takeSample(new Blob(chunks,{type:rec.mimeType})); rec=null; $("recBtn").textContent="הקלטה"; $("recBtn").classList.remove("pulse"); };
+    rec.start(); let s=0; $("recBtn").textContent="עצירה (0)"; $("recBtn").classList.add("pulse");
+    setAdd("מקליט… קרא משפט או שניים בקול רגיל.");
+    recTimer=setInterval(()=>{ s++; $("recBtn").textContent=`עצירה (${s})`; if(s>=20) stopRec(); },1000);
+  }catch{ setAdd("אין גישה למיקרופון. אשר הרשאה בדפדפן, או העלה קובץ הקלטה.","err"); }
+}
+function stopRec(){ clearInterval(recTimer); if(rec && rec.state!=="inactive") rec.stop(); }
+$("recBtn").onclick=()=> rec ? stopRec() : startRec();
+
+$("saveVoice").onclick=async()=>{
+  const v={ id:"v"+Date.now(), name:$("voiceName").value.trim(), wav:pending.wav, secs:Math.min(pending.secs,20), created:Date.now(), consent:true };
+  await put("voices",v); selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{}
+  $("addPanel").hidden=true; await loadVoices();
+};
+
+/* ---------- script ---------- */
+const ta=$("text");
+function count(){ const n=ta.value.length; $("count").textContent=`${n} / ${MAX}`; $("count").classList.toggle("over",n>MAX); $("genBtn").disabled = n===0 || n>MAX || busy; }
+ta.addEventListener("input",()=>{ count(); try{localStorage.setItem("koli.text",ta.value);}catch{} });
+try{ const t=localStorage.getItem("koli.text"); if(t) ta.value=t; }catch{}
+[["exag","exagOut"],["pace","paceOut"],["temp","tempOut"]].forEach(([i,o])=>{ $(i).oninput=()=>$(o).textContent=$(i).value; });
+
+/* ---------- generate ---------- */
+let client=null, busy=false;
+function setGen(msg,cls=""){ const s=$("genStatus"); s.textContent=msg; s.className="status "+cls; }
+async function getClient(){ if(!client){ setGen("מתחבר לשרת החינמי…"); client = await Client.connect(SPACE); } return client; }
+
+$("genBtn").onclick=async()=>{
+  if(busy) return; busy=true; count();
+  const v=voices.find(x=>x.id===selected); const text=ta.value.trim();
+  const t0=Date.now(); const tick=setInterval(()=>setGen(`מפיק… ${Math.round((Date.now()-t0)/1000)} שנ'. בשרת החינמי זה יכול לקחת עד דקה או שתיים.`),1000);
+  try{
+    const app=await getClient();
+    const res=await app.predict(ENDPOINT,{
+      text_input:text,
+      audio_prompt_path_input: v.builtin ? null : handle_file(v.wav),
+      language_id_input:"he",
+      exaggeration_input:+$("exag").value,
+      temperature_input:+$("temp").value,
+      seed_num_input:0,
+      cfgw_input:+$("pace").value
+    });
+    const out=res?.data?.[0]; const url= out?.url || (typeof out==="string"?out:null);
+    if(!url) throw new Error("no audio");
+    let blob=null; try{ blob = await (await fetch(url)).blob(); }catch{}
+    const take={ id:"t"+Date.now(), text, voice:v.name, blob, url, created:Date.now() };
+    await put("takes",take); renderTakes(take.id);
+    setGen(`מוכן אחרי ${Math.round((Date.now()-t0)/1000)} שניות.`,"ok");
+  }catch(e){
+    const m=String(e?.message||e);
+    client=null;
+    setGen(/quota|GPU|exceeded/i.test(m) ? "נגמרה המכסה החינמית של השרת לעכשיו. נסה שוב בעוד כמה דקות."
+         : /queue|full|busy/i.test(m) ? "השרת עמוס. נסה שוב עוד רגע."
+         : "ההפקה נכשלה. בדוק חיבור לאינטרנט ונסה שוב. אם זה חוזר, ייתכן שהשרת החינמי לא זמין כרגע.","err");
+    console.error(e);
+  }finally{ clearInterval(tick); busy=false; count(); }
+};
+
+async function renderTakes(highlight){
+  const list=(await all("takes")).sort((a,b)=>b.created-a.created).slice(0,20);
+  const box=$("takes"); box.textContent="";
+  if(!list.length){ const p=document.createElement("p"); p.className="empty"; p.textContent='עוד אין הקלטות. בחר קול, כתוב טקסט ולחץ "הפקה".'; box.append(p); return; }
+  list.forEach(t=>{
+    const d=document.createElement("div"); d.className="take";
+    const p=document.createElement("p"); p.textContent=`${t.voice}: ${t.text}`;
+    const a=document.createElement("audio"); a.controls=true; a.preload="metadata";
+    const src = t.blob ? URL.createObjectURL(t.blob) : t.url; a.src=src;
+    const row=document.createElement("div"); row.className="row";
+    const dl=document.createElement("a"); dl.href=src; dl.download=`koli-${t.id}.wav`; dl.textContent="הורדה";
+    const rm=document.createElement("button"); rm.type="button"; rm.className="btn"; rm.style.padding="4px 10px"; rm.style.fontSize=".85rem"; rm.textContent="מחיקה";
+    rm.onclick=async()=>{ await del("takes",t.id); renderTakes(); };
+    row.append(dl,rm); d.append(p,a,row); box.append(d);
+    if(t.id===highlight) a.play().catch(()=>{});
+  });
+}
+
+loadVoices(); renderTakes(); count();
+</script>
+</body>
+</html>
