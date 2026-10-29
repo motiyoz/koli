@@ -508,6 +508,31 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
     </div>
   </section>
 
+  <section aria-labelledby="h-srv">
+    <h2 id="h-srv">השרת שלי <small id="srvState">לא מוגדר</small></h2>
+    <div class="panel">
+      <p class="hint" style="margin:0">שרת פרטי משלך להקראת טקסט: בלי מכסה יומית ובחינם, אבל איטי יותר (דקה עד שתיים למשפט).</p>
+      <details>
+        <summary>איך יוצרים שרת משלך (3 דקות)</summary>
+        <ol class="tips" style="color:var(--ink)">
+          <li>היכנס לחשבון ב-Hugging Face, ואז פתח את <a href="https://huggingface.co/spaces/ResembleAI/Chatterbox-Multilingual-TTS-V3" target="_blank" rel="noopener">השרת המקורי</a>.</li>
+          <li>למעלה, ליד הכפתור Like, לחץ על <b>שלוש הנקודות ⋮</b> ובחר <b>Duplicate this Space</b>.</li>
+          <li>בחלון שנפתח: <b>Visibility</b> השאר <b>Public</b>. תחת <b>Hardware</b> בחר <b>CPU basic · FREE</b>.</li>
+          <li>לחץ <b>Duplicate Space</b>. ההתקנה לוקחת 5 עד 15 דקות. חכה עד שיופיע למעלה <b>Running</b>.</li>
+          <li>העתק את הכתובת מהדפדפן (מתחילה ב-huggingface.co/spaces/) והדבק כאן.</li>
+        </ol>
+      </details>
+      <label class="field" for="srvIn">כתובת השרת
+        <input type="text" id="srvIn" placeholder="huggingface.co/spaces/שם-משתמש/שם-השרת" dir="ltr" autocomplete="off">
+      </label>
+      <div class="row">
+        <button class="btn primary" id="srvSave" type="button">חיבור ובדיקה</button>
+        <button class="btn" id="srvClear" type="button">חזרה לשרת המשותף</button>
+      </div>
+      <p class="status" id="srvStatus"></p>
+    </div>
+  </section>
+
   <section aria-labelledby="h-hf">
     <h2 id="h-hf">חשבון Hugging Face <small id="hfState">לא מחובר</small></h2>
     <div class="panel">
@@ -545,7 +570,8 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
 <script type="module">
 
 const BASE = "https://resembleai-chatterbox-multilingual-tts-v3.hf.space";
-const API = BASE + "/gradio_api";
+function myServer(){ try{ return localStorage.getItem("koli.server")||""; }catch{ return ""; } }
+function ttsApi(){ return (myServer()||BASE) + "/gradio_api"; }
 const FN = "generate_tts_audio";
 const MAX = 300;
 const VC_BASE = "https://plachta-seed-vc.hf.space";
@@ -856,14 +882,14 @@ async function http(url,opts,what){
   if(!r.ok){ let t=""; try{t=(await r.text()).slice(0,160);}catch{} throw new Error(`${what}: השרת החזיר ${r.status} ${t}`); }
   return r;
 }
-async function upload(blob, api=API, name="voice.wav"){
+async function upload(blob, api=ttsApi(), name="voice.wav"){
   const fd=new FormData(); fd.append("files", blob, name);
   const r=await http(api+"/upload",{method:"POST",body:fd,headers:auth()},"העלאת הקובץ");
   const j=await r.json(); const path=Array.isArray(j)?j[0]:j;
   return { path, orig_name:name, mime_type:blob.type||"audio/wav", meta:{_type:"gradio.FileData"} };
 }
 const remote = (url)=>({ path:url, url, orig_name:url.split("/").pop(), meta:{_type:"gradio.FileData"} });
-async function callTTS(data, api=API, fn=FN){
+async function callTTS(data, api=ttsApi(), fn=FN){
   const r=await http(`${api}/call/${fn}`,{method:"POST",headers:auth({"Content-Type":"application/json"}),body:JSON.stringify({data})},"שליחת הבקשה");
   let j; try{ j=await r.json(); }catch{ const e=new Error("NO_CALL_API"); e.noCall=true; throw e; }
   const { event_id } = j;
@@ -958,16 +984,17 @@ const refCache=new Map();
 async function voiceRef(v){
   if(v.ttsDefault) return null;
   if(v.builtin) return remote(v.url);
-  if(!refCache.has(v.id)) refCache.set(v.id, await upload(v.wav));
-  return refCache.get(v.id);
+  const k=v.id+"@"+(myServer()||"shared");
+  if(!refCache.has(k)) refCache.set(k, await upload(v.wav));
+  return refCache.get(k);
 }
 async function ttsOnce(text, v){
   const st=getVS(v.id);
   const mk=async()=>[text, await voiceRef(v), "he", st.exag, st.temp, 0, st.pace];
   let data;
   try{ data=await callTTS(await mk()); }
-  catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; refCache.delete(v.id); setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); data=await callTTS(await mk()); }
-  const url=audioUrl([Array.isArray(data)?data[0]:data], API);
+  catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; refCache.clear(); setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); data=await callTTS(await mk()); }
+  const url=audioUrl([Array.isArray(data)?data[0]:data], ttsApi());
   if(!url) throw new Error("לא התקבל קובץ שמע");
   return await fetchBlob(url);
 }
@@ -1486,13 +1513,41 @@ document.querySelectorAll("[data-theme-set]").forEach(b=>b.onclick=()=>applyThem
 matchMedia("(prefers-color-scheme: light)").addEventListener?.("change",()=>{ let t=null; try{t=localStorage.getItem("koli.theme2");}catch{} if(t==="system") applyTheme("system"); });
 { let t=null; try{ t=localStorage.getItem("koli.theme2"); }catch{} applyTheme(t==="dark"||t==="system"?t:"light"); }
 
+/* ---------- my own server ---------- */
+function spaceBase(input){
+  const t=(input||"").trim(); if(!t) return "";
+  let m=t.match(/([a-z0-9-]+)\.hf\.space/i); if(m) return `https://${m[1].toLowerCase()}.hf.space`;
+  m=t.match(/spaces\/([^\/\s?#]+)\/([^\/\s?#]+)/i);
+  if(m) return `https://${(m[1]+"-"+m[2]).toLowerCase().replace(/[^a-z0-9-]/g,"-")}.hf.space`;
+  return "";
+}
+function setSrv(msg,cls=""){ const s=$("srvStatus"); s.textContent=msg; s.className="status "+cls; }
+function srvUi(){
+  const b=myServer(); $("srvState").textContent = b ? "מחובר" : "לא מוגדר";
+  if(b && !$("srvIn").value) $("srvIn").value=b.replace("https://","");
+}
+$("srvSave").onclick=async()=>{
+  const base=spaceBase($("srvIn").value);
+  if(!base){ setSrv("הכתובת לא נראית כמו כתובת של שרת ב-Hugging Face. היא צריכה להכיל huggingface.co/spaces/","err"); return; }
+  setSrv("בודק את השרת… אם הוא ישן, זה יכול לקחת דקה.");
+  let cfg=null;
+  for(let i=0;i<4&&!cfg;i++){ if(i) await wait(8000); [,cfg]=await getJson([base+"/config", base+"/gradio_api/config"]); }
+  if(!cfg){ setSrv("השרת לא עונה. אם יצרת אותו עכשיו, חכה שיופיע Running באתר של Hugging Face ונסה שוב.","err"); return; }
+  const names=(cfg.dependencies||[]).map(d=>d.api_name);
+  if(!names.includes(FN)){ setSrv("השרת עונה, אבל זה לא שרת ההקראה הנכון. ודא ששכפלת את Chatterbox-Multilingual-TTS-V3.","err"); return; }
+  try{ localStorage.setItem("koli.server",base); }catch{}
+  refCache.clear(); srvUi(); $("srvIn").value=base.replace("https://","");
+  setSrv("מחובר! מעכשיו ההקראה רצה על השרת שלך, בלי מכסה. ההפקה הראשונה איטית במיוחד, כי השרת טוען את המודל.","ok");
+};
+$("srvClear").onclick=()=>{ try{ localStorage.removeItem("koli.server"); }catch{} refCache.clear(); $("srvIn").value=""; srvUi(); setSrv("חזרת לשרת המשותף.","ok"); };
+
 /* ---------- account ---------- */
 function hfUi(){ const t=token(); $("hfState").textContent = t ? "מחובר" : "לא מחובר"; $("hfToken").value = t ? "••••••••"+t.slice(-4) : ""; }
 $("hfSave").onclick=()=>{ const v=$("hfToken").value.trim(); if(!/^hf_[A-Za-z0-9]{10,}$/.test(v)){ $("hfState").textContent="הטוקן צריך להתחיל ב-hf_"; return; } try{ localStorage.setItem("koli.hf",v); }catch{} hfUi(); };
 $("hfClear").onclick=()=>{ try{ localStorage.removeItem("koli.hf"); }catch{} hfUi(); };
 
 /* ---------- start ---------- */
-hfUi(); renderDict(); renderVariants(); markRec();
+hfUi(); srvUi(); renderDict(); renderVariants(); markRec();
 { const m=store.get("koli.mode",null) ?? (()=>{ try{ return localStorage.getItem("koli.mode"); }catch{ return null; } })(); setMode(["tts","vc","dub","dlg"].includes(m)?m:"tts"); }
 loadVoices(); renderTakes(null,false);
 </script>
