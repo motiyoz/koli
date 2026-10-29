@@ -525,9 +525,9 @@ async function callTTS(data, api=API, fn=FN){
   return payload;
 }
 
-async function callQueue(api, fn, data){
-  const cfgR=await http(api+"/config",{headers:auth()},"קריאת הגדרות השרת");
-  const cfg=await cfgR.json();
+async function callQueue(api, fn, data, cfg){
+  if(!cfg){ const [,c]=await getJson([api+"/config", api.replace(/\/gradio_api$/,"")+"/config"]); cfg=c; }
+  if(!cfg) throw new Error("קריאת הגדרות השרת נכשלה");
   const deps=cfg.dependencies||[];
   let idx=deps.findIndex(d=>d.api_name===fn);
   if(idx<0) idx=deps.findIndex(d=>d.api_name && d.api_name!==false && (d.inputs||[]).length===data.length);
@@ -559,9 +559,9 @@ async function callQueue(api, fn, data){
   if(last) return last;
   throw new Error("החיבור לשרת נסגר לפני שהתקבלה תוצאה");
 }
-async function callAny(data, api, fn){
+async function callAny(data, api, fn, cfg){
   try{ return await callTTS(data, api, fn); }
-  catch(e){ if(e.noCall || /השרת החזיר (404|405)/.test(e.message)) return await callQueue(api, fn, data); throw e; }
+  catch(e){ if(e.noCall || /השרת החזיר (404|405)/.test(e.message)) return await callQueue(api, fn, data, cfg); throw e; }
 }
 function audioUrl(data, api){
   const arr=Array.isArray(data)?data:[data];
@@ -605,16 +605,34 @@ async function runTTS(){
 
 /* ---------- voice conversion (Seed-VC) ---------- */
 let vcSpace=null, vcSrc=null;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function getJson(urls){
+  for(const u of urls){
+    try{ const r=await fetch(u,{headers:auth()}); if(!r.ok) continue; const t=await r.text(); try{ return [u, JSON.parse(t)]; }catch{} }catch{}
+  }
+  return [null,null];
+}
 async function vcInfo(){
   if(vcSpace) return vcSpace;
-  let api=VC_BASE+"/gradio_api", info=null;
-  try{ const r=await fetch(api+"/info",{headers:auth()}); if(r.ok) info=await r.json(); }catch{}
-  if(!info){ api=VC_BASE; const r=await http(api+"/info",{headers:auth()},"חיבור לשרת ההמרה"); info=await r.json(); }
-  const eps=Object.entries(info.named_endpoints||{});
-  const names=e=>(e[1].parameters||[]).map(p=>p.parameter_name||"");
-  let ep = eps.find(e=>names(e).includes("f0_condition")) || eps.find(e=>names(e).some(n=>/source/.test(n)) && names(e).some(n=>/target|reference/.test(n)));
-  if(!ep) throw new Error("לא נמצאה פעולת ההמרה בשרת");
-  vcSpace={ api, fn:ep[0].replace(/^\//,""), params:ep[1].parameters||[] };
+  let cfgUrl=null, cfg=null;
+  for(let i=0;i<4 && !cfg;i++){
+    if(i) { setGen("שרת ההמרה מתעורר משינה, זה לוקח עד דקה…"); await wait(8000); }
+    [cfgUrl,cfg]=await getJson([VC_BASE+"/config", VC_BASE+"/gradio_api/config"]);
+  }
+  if(!cfg) throw new Error("שרת ההמרה לא עונה כרגע");
+  const major=parseInt(String(cfg.version||"0").split(".")[0],10);
+  const prefix = cfg.api_prefix ?? (major>=5 ? "/gradio_api" : "");
+  const api = VC_BASE + prefix;
+  const [,info]=await getJson([api+"/info", VC_BASE+"/info", VC_BASE+"/gradio_api/info"]);
+  let fn=null, params=null;
+  if(info){
+    const eps=Object.entries(info.named_endpoints||{});
+    const names=e=>(e[1].parameters||[]).map(p=>p.parameter_name||"");
+    const ep = eps.find(e=>names(e).includes("f0_condition")) || eps.find(e=>names(e).some(n=>/source/.test(n)) && names(e).some(n=>/target|reference/.test(n)));
+    if(ep){ fn=ep[0].replace(/^\//,""); params=ep[1].parameters||[]; }
+  }
+  if(!fn) throw new Error("לא נמצאה פעולת ההמרה בשרת");
+  vcSpace={ api, fn, params, cfg };
   return vcSpace;
 }
 function setVc(msg,cls=""){ const s=$("vcStatus"); s.textContent=msg; s.className="status "+cls; }
@@ -681,8 +699,8 @@ async function runVC(){
       return p.parameter_default ?? null;
     });
     let out;
-    try{ out=await callAny(data, sp.api, sp.fn); }
-    catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); out=await callAny(data, sp.api, sp.fn); }
+    try{ out=await callAny(data, sp.api, sp.fn, sp.cfg); }
+    catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); out=await callAny(data, sp.api, sp.fn, sp.cfg); }
     const url=audioUrl(out, sp.api);
     if(!url) throw new Error("לא התקבל קובץ שמע");
     await saveTake(url, `המרת הקלטה של ${vcSrc.secs.toFixed(0)} שנ'`, v.name, t0);
