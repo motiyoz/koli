@@ -72,6 +72,8 @@ audio{width:100%}
 .empty{color:var(--muted);font-size:.92rem;margin:0}
 .tips{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
 .tips b{color:var(--ink)}
+.hint{font-size:.85rem;color:var(--muted)}
+.hint a,.tips a{color:var(--accent);font-weight:700}
 details summary{cursor:pointer;font-weight:700;font-size:.92rem;color:var(--muted)}
 details[open] summary{margin-bottom:10px}
 .bar{position:fixed;inset:auto 0 0;background:var(--surface);border-top:1px solid var(--line);
@@ -157,6 +159,26 @@ footer{font-size:.8rem;color:var(--muted);text-align:center}
     <h2 id="h-takes">הקלטות <small>נשמרות רק במכשיר הזה</small></h2>
     <p class="status" id="genStatus" aria-live="polite"></p>
     <div id="takes"><p class="empty">עוד אין הקלטות. בחר קול, כתוב טקסט ולחץ "הפקה".</p></div>
+  </section>
+
+  <section aria-labelledby="h-hf">
+    <h2 id="h-hf">חשבון Hugging Face <small id="hfState">לא מחובר</small></h2>
+    <div class="panel">
+      <p class="hint" style="margin:0">בלי חשבון, השרת החינמי נותן רק כמה הפקות ואז נחסם לזמן מה. עם חשבון חינמי יש מכסה גדולה יותר, ועם חשבון PRO הרבה יותר.</p>
+      <ol class="tips" style="color:var(--ink)">
+        <li>פתח חשבון חינמי ב-<a href="https://huggingface.co/join" target="_blank" rel="noopener">huggingface.co/join</a></li>
+        <li>צור טוקן ב-<a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a>: לחץ Create new token, בחר <b>Read</b>, תן שם ולחץ Create.</li>
+        <li>העתק את הטוקן (מתחיל ב-hf_) והדבק כאן.</li>
+      </ol>
+      <label class="field" for="hfToken">טוקן
+        <input type="password" id="hfToken" placeholder="hf_..." autocomplete="off" dir="ltr">
+      </label>
+      <div class="row">
+        <button class="btn primary" id="hfSave" type="button">שמירה</button>
+        <button class="btn" id="hfClear" type="button">ניתוק</button>
+      </div>
+      <p class="hint" style="margin:0">הטוקן נשמר רק בטלפון הזה ונשלח רק לשרת של Hugging Face.</p>
+    </div>
   </section>
 
   <footer>מנוע: Chatterbox Multilingual (קוד פתוח) דרך Hugging Face. לשימוש עם קולות שקיבלת עליהם הסכמה בלבד.</footer>
@@ -321,30 +343,32 @@ function errText(e){
   try{ return JSON.stringify(e); }catch{ return String(e); }
 }
 function setGen(msg,cls=""){ const s=$("genStatus"); s.textContent=msg; s.className="status "+cls; }
+function token(){ try{ return (localStorage.getItem("koli.hf")||"").trim(); }catch{ return ""; } }
+function auth(h={}){ const t=token(); return t ? {...h, Authorization:"Bearer "+t} : h; }
 async function http(url,opts,what){
   let r;
   try{ r=await fetch(url,opts); }
-  catch(e){ throw new Error(`${what}: אין תקשורת עם השרת (${e.message})`); }
+  catch(e){ throw new Error(`${what}: אין תקשורת עם השרת (${e.message})${token()?". נסה ללחוץ ניתוק בהגדרות החשבון ולהפיק שוב":""}`); }
   if(!r.ok){ let t=""; try{t=(await r.text()).slice(0,160);}catch{} throw new Error(`${what}: השרת החזיר ${r.status} ${t}`); }
   return r;
 }
 async function upload(blob){
   const fd=new FormData(); fd.append("files", blob, "voice.wav");
-  const r=await http(API+"/upload",{method:"POST",body:fd},"העלאת הדגימה");
+  const r=await http(API+"/upload",{method:"POST",body:fd,headers:auth()},"העלאת הדגימה");
   const j=await r.json(); const path=Array.isArray(j)?j[0]:j;
   return { path, orig_name:"voice.wav", mime_type:"audio/wav", meta:{_type:"gradio.FileData"} };
 }
 async function callTTS(data){
-  const r=await http(`${API}/call/${FN}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data})},"שליחת הבקשה");
+  const r=await http(`${API}/call/${FN}`,{method:"POST",headers:auth({"Content-Type":"application/json"}),body:JSON.stringify({data})},"שליחת הבקשה");
   const { event_id } = await r.json();
-  const res=await http(`${API}/call/${FN}/${event_id}`,{},"קבלת התוצאה");
+  const res=await http(`${API}/call/${FN}/${event_id}`,{headers:auth()},"קבלת התוצאה");
   const txt=await res.text();
   const blocks=txt.split(/\n\n/); let ev="", payload=null;
   for(const blk of blocks){
     const e=(blk.match(/^event:\s*(.*)$/m)||[])[1]; const d=(blk.match(/^data:\s*(.*)$/m)||[])[1];
     if(e){ ev=e.trim(); if(d){ try{payload=JSON.parse(d);}catch{payload=d;} } if(ev==="complete"||ev==="error") break; }
   }
-  if(ev!=="complete"){ throw new Error(`השרת דחה את הבקשה${payload?": "+(typeof payload==="string"?payload:JSON.stringify(payload)):" בלי פירוט. בדרך כלל זה עומס זמני או מכסה חינמית שנגמרה"}`); }
+  if(ev!=="complete"){ throw new Error(`השרת דחה את הבקשה${payload?": "+(typeof payload==="string"?payload:JSON.stringify(payload)):(token()?" בלי פירוט. כנראה עומס זמני או שהמכסה של החשבון נגמרה להיום":" בלי פירוט. כנראה נגמרה המכסה החינמית למשתמשים בלי חשבון. חבר חשבון Hugging Face בחינם בהגדרות שלמטה")}`); }
   return payload;
 }
 
@@ -394,6 +418,10 @@ async function renderTakes(highlight){
   });
 }
 
+function hfUi(){ const t=token(); $("hfState").textContent = t ? "מחובר" : "לא מחובר"; $("hfToken").value = t ? "••••••••"+t.slice(-4) : ""; }
+$("hfSave").onclick=()=>{ const v=$("hfToken").value.trim(); if(!/^hf_[A-Za-z0-9]{10,}$/.test(v)){ $("hfState").textContent="הטוקן צריך להתחיל ב-hf_"; return; } try{ localStorage.setItem("koli.hf",v); }catch{} hfUi(); };
+$("hfClear").onclick=()=>{ try{ localStorage.removeItem("koli.hf"); }catch{} hfUi(); };
+hfUi();
 loadVoices(); renderTakes(); count();
 </script>
 </body>
