@@ -165,6 +165,37 @@ details[open]>*:not(summary){animation:fadeIn .35s ease both}
 .bar .btn.working::before{content:"";width:22px;height:22px;border-radius:50%;border:3px solid rgba(27,10,4,.25);border-top-color:var(--accent-ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+.banner{position:fixed;z-index:6;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  bottom:calc(92px + env(safe-area-inset-bottom,0px));max-width:580px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+  padding:14px 14px 18px;border-radius:20px;background:rgba(24,21,36,.92);border:1px solid var(--line);overflow:hidden;
+  backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
+  box-shadow:0 24px 60px -18px rgba(0,0,0,.9);animation:bnIn .45s cubic-bezier(.3,1.4,.5,1) both}
+.banner.leaving{animation:bnOut .3s ease both}
+@keyframes bnIn{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes bnOut{to{opacity:0;transform:translateY(16px) scale(.97)}}
+.bn-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(255,178,62,.12)}
+.bn-spin{width:24px;height:24px;border-radius:50%;border:3px solid rgba(255,178,62,.25);border-top-color:var(--amber);animation:spin .8s linear infinite}
+.bn-mark{display:none;font:700 1.3rem/1 var(--body)}
+.bn-body{min-width:0}
+.bn-title{display:block;font:400 1.05rem/1.2 var(--display);margin-bottom:2px}
+.bn-msg{margin:0;font-size:.9rem;color:var(--muted);overflow-wrap:anywhere;max-height:8.5em;overflow:auto}
+.bn-close{font:400 1.5rem/1 var(--body);color:var(--muted);background:transparent;border:0;cursor:pointer;width:34px;height:34px;border-radius:50%;align-self:start}
+.bn-close:hover{background:var(--glass-hi);color:var(--ink)}
+.bn-track{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.06)}
+.bn-track i{position:absolute;top:0;bottom:0;width:40%;background:var(--grad);border-radius:4px;animation:indet 1.4s ease-in-out infinite}
+@keyframes indet{0%{right:-40%}100%{right:100%}}
+.banner.work{border-color:rgba(255,178,62,.35)}
+.banner.work .bn-close{visibility:hidden}
+.banner.ok{border-color:rgba(63,224,181,.45);box-shadow:0 24px 60px -18px rgba(0,0,0,.9),0 0 0 4px rgba(63,224,181,.08)}
+.banner.ok .bn-icon{background:rgba(63,224,181,.14)} .banner.ok .bn-title{color:var(--mint)}
+.banner.err{border-color:rgba(255,125,107,.5);box-shadow:0 24px 60px -18px rgba(0,0,0,.9),0 0 0 4px rgba(255,125,107,.08);animation:bnIn .45s cubic-bezier(.3,1.4,.5,1) both,shake .5s .45s ease}
+.banner.err .bn-icon{background:rgba(255,125,107,.14)} .banner.err .bn-title{color:var(--warn)} .banner.err .bn-msg{color:#f1d6d1}
+.banner.ok .bn-spin,.banner.err .bn-spin,.banner.ok .bn-track,.banner.err .bn-track{display:none}
+.banner.ok .bn-mark,.banner.err .bn-mark{display:block}
+.banner.ok .bn-mark::before{content:"✓";color:var(--mint)}
+.banner.err .bn-mark::before{content:"!";color:var(--warn)}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+body.has-banner{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))}
 footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
 .pulse{animation:recPulse 1.2s ease-in-out infinite;background:rgba(255,95,69,.18)!important;border-color:var(--coral)!important;color:var(--coral)!important}
 @keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,95,69,.5)}50%{box-shadow:0 0 0 8px rgba(255,95,69,0)}}
@@ -282,7 +313,6 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
 
   <section aria-labelledby="h-takes">
     <h2 id="h-takes">הקלטות <small>נשמרות רק במכשיר הזה</small></h2>
-    <p class="status" id="genStatus" aria-live="polite"></p>
     <div id="takes"><p class="empty">עוד אין הקלטות. בחר קול, כתוב טקסט ולחץ "הפקה".</p></div>
   </section>
 
@@ -309,6 +339,15 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
   <footer>מנועים: Chatterbox Multilingual ו-Seed-VC (קוד פתוח) דרך Hugging Face. לשימוש עם קולות שקיבלת עליהם הסכמה בלבד.</footer>
 </main>
 
+<div class="banner" id="banner" role="status" aria-live="polite" hidden>
+  <div class="bn-icon" aria-hidden="true"><span class="bn-spin"></span><span class="bn-mark"></span></div>
+  <div class="bn-body">
+    <b class="bn-title" id="bnTitle"></b>
+    <p class="bn-msg" id="bnMsg"></p>
+  </div>
+  <button class="bn-close" id="bnClose" type="button" aria-label="סגירה">×</button>
+  <div class="bn-track" aria-hidden="true"><i></i></div>
+</div>
 <div class="bar"><button class="btn primary" id="genBtn" type="button">הפקה</button></div>
 
 <script type="module">
@@ -493,7 +532,18 @@ function errText(e){
   if(parts.length) return parts.join(" | ");
   try{ return JSON.stringify(e); }catch{ return String(e); }
 }
-function setGen(msg,cls=""){ const s=$("genStatus"); s.textContent=msg; s.className="status "+cls; }
+let bnTimer=null;
+function setGen(msg,cls=""){
+  const b=$("banner"), state = cls==="err" ? "err" : cls==="ok" ? "ok" : "work";
+  clearTimeout(bnTimer);
+  if(!msg){ hideBanner(); return; }
+  b.className="banner "+state; b.hidden=false; document.body.classList.add("has-banner");
+  $("bnTitle").textContent = state==="err" ? "משהו השתבש" : state==="ok" ? "מוכן!" : (mode==="vc" ? "ממיר את ההקלטה" : "מפיק את הקול");
+  $("bnMsg").textContent = msg;
+  if(state==="ok") bnTimer=setTimeout(hideBanner, 6000);
+}
+function hideBanner(){ const b=$("banner"); b.classList.add("leaving"); bnTimer=setTimeout(()=>{ b.hidden=true; b.classList.remove("leaving"); document.body.classList.remove("has-banner"); },300); }
+$("bnClose").onclick=hideBanner;
 function token(){ try{ return (localStorage.getItem("koli.hf")||"").trim(); }catch{ return ""; } }
 function auth(h={}){ const t=token(); return t ? {...h, Authorization:"Bearer "+t} : h; }
 async function http(url,opts,what){
