@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0b12">
+<meta name="theme-color" content="#f7f1ea">
 <script>
-(function(){var t=null;try{t=localStorage.getItem("koli.theme")}catch(e){}
-if(t!=="system")document.documentElement.setAttribute("data-theme",t==="light"?"light":"dark");})();
+(function(){var t=null;try{t=localStorage.getItem("koli.theme2")}catch(e){}
+if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");})();
 </script>
 <title>קולי</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -85,13 +85,36 @@ main>section:nth-of-type(2){animation-delay:.08s} main>section:nth-of-type(3){an
 h2{font:400 1.25rem/1.2 var(--display);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 h2 small{font:600 .78rem var(--body);color:var(--muted);letter-spacing:.02em}
 
-/* mode switch */
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:5px;
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);animation:rise .6s .04s cubic-bezier(.2,.8,.2,1) both}
-.mode{font:700 .98rem var(--body);border:0;border-radius:13px;padding:12px 6px;background:transparent;color:var(--muted);cursor:pointer;
-  transition:color .3s,background .35s,box-shadow .35s,transform .15s}
-.mode:active{transform:scale(.96)}
-.mode[aria-selected="true"]{color:var(--accent-ink);background:var(--grad);box-shadow:0 8px 24px -6px rgba(255,95,69,.6)}
+/* mode tiles */
+.modes-title{margin:4px 2px -6px;font:400 1.1rem var(--display);color:var(--ink)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:right;font:inherit;color:var(--ink);cursor:pointer;
+  background:var(--glass);border:1px solid var(--line);border-radius:20px;padding:14px 14px 13px;min-height:122px;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 14px 34px -26px var(--shadow);
+  transition:transform .2s,box-shadow .3s,border-color .3s,background .3s;animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.mode:nth-child(2){animation-delay:.05s}.mode:nth-child(3){animation-delay:.1s}.mode:nth-child(4){animation-delay:.15s}
+.mode:active{transform:scale(.97)}
+.mode b{font:400 1.08rem/1.15 var(--display)}
+.mode small{font-size:.8rem;color:var(--muted);line-height:1.3}
+.m-ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--glass-hi);border:1px solid var(--line);margin-bottom:6px;transition:background .3s}
+.m-ic svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mode[aria-selected="true"]{border-color:transparent;background:linear-gradient(var(--bg2),var(--bg2)) padding-box,var(--grad) border-box;border:1.5px solid transparent;
+  box-shadow:0 16px 36px -16px rgba(255,95,69,.55)}
+.mode[aria-selected="true"] .m-ic{background:var(--grad);border-color:transparent}
+.mode[aria-selected="true"] .m-ic svg{stroke:var(--accent-ink)}
+.mode[aria-selected="true"]::after{content:"";position:absolute;top:14px;left:14px;width:9px;height:9px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px rgba(255,95,69,.18)}
+/* panel badge per mode */
+.mode-tag{display:inline-flex;align-items:center;gap:6px;font:700 .72rem var(--body);letter-spacing:.06em;color:var(--text-accent);margin-bottom:6px}
+.mode-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--grad)}
+/* trimmer */
+.trim{display:flex;flex-direction:column;gap:8px;background:var(--field2);border:1px solid var(--line);border-radius:16px;padding:12px}
+.trim-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.trim-head b{font:400 1rem var(--display)}
+.trim-info{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.trim canvas{width:100%;height:64px;display:block;border-radius:10px;cursor:pointer;touch-action:none}
+.trim-ranges{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:.85rem}
+.trim-ranges output{font-variant-numeric:tabular-nums;color:var(--text-accent);font-weight:700;min-width:3.6em;text-align:left}
+.trim .row .btn{padding:7px 12px;font-size:.85rem}
 /* voices */
 .group-label{font-size:.74rem;font-weight:700;color:var(--muted);letter-spacing:.12em;margin:14px 0 8px}
 .group-label:first-of-type{margin-top:0}
@@ -269,11 +292,20 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
     <p class="tag">כל קול, בעברית, ישר מהטלפון</p>
   </header>
 
+  <p class="modes-title">מה עושים היום?</p>
   <div class="modes" role="tablist" aria-label="סוג הפקה">
-    <button class="mode" role="tab" id="mode-tts" data-mode="tts" type="button" aria-selected="true">טקסט לקול</button>
-    <button class="mode" role="tab" id="mode-vc" data-mode="vc" type="button" aria-selected="false">הקלטה לקול אחר</button>
-    <button class="mode" role="tab" id="mode-dub" data-mode="dub" type="button" aria-selected="false">דיבוב סרטון</button>
-    <button class="mode" role="tab" id="mode-dlg" data-mode="dlg" type="button" aria-selected="false">דיאלוג</button>
+    <button class="mode" role="tab" id="mode-tts" data-mode="tts" type="button" aria-selected="true">
+      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h10M4 16h7"/><path d="M17 13v6M20 14.5v3M14 15v1"/></svg></span>
+      <b>טקסט לקול</b><small>כותבים, והקול מקריא</small></button>
+    <button class="mode" role="tab" id="mode-vc" data-mode="vc" type="button" aria-selected="false">
+      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="6" height="11" rx="3"/><path d="M3 11a5 5 0 0 0 10 0M8 16v4"/><path d="M15 8l3 3-3 3M18 11h3"/></svg></span>
+      <b>הקלטה לקול אחר</b><small>אותן מילים, קול אחר</small></button>
+    <button class="mode" role="tab" id="mode-dub" data-mode="dub" type="button" aria-selected="false">
+      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2v8l-4-2"/><path d="M8 10v4M11 9v6"/></svg></span>
+      <b>דיבוב סרטון</b><small>מחליפים את הקול בווידאו</small></button>
+    <button class="mode" role="tab" id="mode-dlg" data-mode="dlg" type="button" aria-selected="false">
+      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M19 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-4-3h-3"/></svg></span>
+      <b>דיאלוג</b><small>כמה דמויות, כמה קולות</small></button>
   </div>
 
   <section aria-labelledby="h-voices">
@@ -304,9 +336,9 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
         <label class="btn" for="fileIn" style="display:inline-block">העלאת קובץ שמע</label>
         <input type="file" id="fileIn" accept="audio/*" hidden>
       </div>
-      <canvas class="wave" id="wave" width="560" height="56" aria-hidden="true"></canvas>
       <p class="status" id="addStatus">דבר בשקט יחסי, בלי מוזיקה ברקע.</p>
       <audio id="addPreview" controls hidden></audio>
+      <div class="trim" id="addTrim" hidden></div>
       <div class="row" id="cleanRow" hidden>
         <button class="btn" id="cleanBtn" type="button">ניקוי רעשי רקע</button>
         <button class="btn" id="undoClean" type="button" hidden>חזרה למקור</button>
@@ -323,6 +355,7 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
   </section>
 
   <section id="ttsPanel" aria-labelledby="h-script">
+    <span class="mode-tag">טקסט לקול</span>
     <h2 id="h-script">מה להגיד <small class="count" id="count"></small></h2>
     <textarea id="text" maxlength="5000" aria-label="טקסט להקראה">שלום! זו הקלטה ראשונה שלי עם קולי. ככה נשמע הקול המשובט שלי בעברית.</textarea>
     <details>
@@ -354,7 +387,8 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
   </section>
 
   <section id="vcPanel" hidden aria-labelledby="h-vc">
-    <h2 id="h-vc">ההקלטה שלך <small>עד 60 שניות</small></h2>
+    <span class="mode-tag">הקלטה לקול אחר</span>
+    <h2 id="h-vc">ההקלטה שלך <small>אחרי חיתוך: עד 60 שניות</small></h2>
     <div class="panel">
       <p class="hint" style="margin:0">הקלט או העלה הקלטה. הקול שבחרת יגיד בדיוק את אותן מילים, באותו קצב ובאותה אינטונציה.</p>
       <div class="row">
@@ -362,9 +396,9 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
         <label class="btn" for="vcFile" id="vcUpLabel" style="display:inline-block">העלאת הקלטה</label>
         <input type="file" id="vcFile" accept="audio/*,video/*" hidden>
       </div>
-      <canvas class="wave" id="vcWave" width="560" height="56" aria-hidden="true"></canvas>
       <p class="status" id="vcStatus">עוד לא נבחרה הקלטה.</p>
       <audio id="vcPreview" controls hidden></audio>
+      <div class="trim" id="vcTrim" hidden></div>
       <div class="row" id="vcClearRow" hidden>
         <button class="btn" id="vcClear" type="button">מחיקת ההקלטה והתחלה מחדש</button>
         <button class="btn" id="sttBtn" type="button">תמלול ההקלטה</button>
@@ -396,7 +430,8 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
   </section>
 
   <section id="dubPanel" hidden aria-labelledby="h-dub">
-    <h2 id="h-dub">הסרטון שלך <small>עד 60 שניות</small></h2>
+    <span class="mode-tag">דיבוב סרטון</span>
+    <h2 id="h-dub">הסרטון שלך <small>אחרי חיתוך: עד 60 שניות</small></h2>
     <div class="panel">
       <p class="hint" style="margin:0">העלה סרטון שמדברים בו. הדיבור יומר לקול שבחרת, והסרטון ייבנה מחדש עם הקול החדש.</p>
       <div class="row">
@@ -405,12 +440,14 @@ footer{font-size:.8rem;color:var(--muted);text-align:center;opacity:.8}
         <button class="btn" id="dubClear" type="button" hidden>מחיקה והתחלה מחדש</button>
       </div>
       <video id="dubPreview" controls playsinline hidden></video>
+      <div class="trim" id="dubTrim" hidden></div>
       <p class="status" id="dubStatus">עוד לא נבחר סרטון.</p>
       <p class="hint" style="margin:0">שים לב: מוזיקת רקע ורעשים בסרטון המקורי לא נשמרים. בזמן הבנייה הסרטון מתנגן ברקע, אז השאר את המסך פתוח.</p>
     </div>
   </section>
 
   <section id="dlgPanel" hidden aria-labelledby="h-dlg">
+    <span class="mode-tag">דיאלוג</span>
     <h2 id="h-dlg">תסריט <small class="count" id="dlgCount"></small></h2>
     <p class="hint" style="margin:0 0 10px">כל שורה מתחילה בשם הדמות ונקודתיים. לכל דמות בוחרים קול.</p>
     <textarea id="dlgText" maxlength="5000" aria-label="תסריט הדיאלוג">יואב: היי מאיה, שמעת שאפשר לשבט קולות מהטלפון?
@@ -644,26 +681,104 @@ $("renameSave").onclick=async()=>{
 };
 $("renameIn").addEventListener("keydown",e=>{ if(e.key==="Enter") $("renameSave").click(); });
 
+/* ---------- trimmer ---------- */
+const fmt=t=>{ t=Math.max(0,t); const m=Math.floor(t/60), sec=t-m*60; return `${m}:${sec.toFixed(1).padStart(4,"0")}`; };
+async function sliceWav(buf, start, end){
+  const rate=24000, len=Math.max(1,Math.ceil((end-start)*rate));
+  const off=new OfflineAudioContext(1,len,rate);
+  const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0,start,end-start);
+  const out=await off.startRendering(); const data=out.getChannelData(0);
+  return { wav: encodeWav(data,rate), secs:end-start, peaks: peaks(data) };
+}
+function makeTrimmer(root, {max, min=1, label, onChange}){
+  const uid=root.id;
+  root.innerHTML=`<div class="trim-head"><b>${label}</b><span class="trim-info"></span></div>
+    <canvas width="600" height="64" aria-hidden="true"></canvas>
+    <div class="trim-ranges" dir="ltr">
+      <output></output><input type="range" id="${uid}-s" step="0.1" min="0" aria-label="נקודת התחלה"><label for="${uid}-s">התחלה</label>
+      <output></output><input type="range" id="${uid}-e" step="0.1" min="0" aria-label="נקודת סיום"><label for="${uid}-e">סוף</label>
+    </div>
+    <div class="row">
+      <button class="btn t-play" type="button">השמעת הקטע</button>
+      <button class="btn t-in" type="button">התחלה מכאן</button>
+      <button class="btn t-out" type="button">סוף כאן</button>
+      <button class="btn t-reset" type="button">איפוס</button>
+    </div>`;
+  const cv=root.querySelector("canvas"), g=cv.getContext("2d");
+  const [rs,re]=root.querySelectorAll("input"), [os,oe]=root.querySelectorAll("output"), info=root.querySelector(".trim-info");
+  let buf=null, media=null, pk=[], start=0, end=0, stopAt=null, raf=0;
+  function draw(){
+    const W=cv.width,H=cv.height; g.clearRect(0,0,W,H); if(!buf) return;
+    const bw=W/pk.length, d=buf.duration;
+    const gr=g.createLinearGradient(0,0,W,0); gr.addColorStop(0,"#ff5f45"); gr.addColorStop(1,"#ffb23e");
+    const mute=getComputedStyle(document.documentElement).getPropertyValue("--line").trim()||"rgba(128,128,128,.3)";
+    pk.forEach((h,i)=>{ const t=(i+.5)/pk.length*d; g.fillStyle=(t>=start&&t<=end)?gr:mute; const hh=Math.max(2,h*H*.92); g.fillRect(i*bw+1,(H-hh)/2,Math.max(1,bw-2),hh); });
+    const x1=start/d*W, x2=end/d*W; g.fillStyle="#ff5f45"; g.fillRect(x1-1,0,3,H); g.fillRect(x2-2,0,3,H);
+    if(media && !media.paused){ const x=media.currentTime/d*W; g.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--ink").trim(); g.fillRect(x,0,2,H); }
+  }
+  function sync(fire=true){
+    rs.value=start; re.value=end; os.textContent=fmt(start); oe.textContent=fmt(end);
+    const len=end-start; info.textContent=`אורך הקטע: ${len.toFixed(1)} שנ'${max&&len>=max-0.05?` (מקסימום ${max})`:""}`;
+    draw(); if(fire) onChange?.(start,end);
+  }
+  function clamp(which){
+    const d=buf.duration;
+    start=Math.max(0,Math.min(start,d-min)); end=Math.max(start+min,Math.min(end,d));
+    if(max && end-start>max){ if(which==="s") end=start+max; else start=end-max; }
+  }
+  rs.oninput=()=>{ start=+rs.value; clamp("s"); sync(); };
+  re.oninput=()=>{ end=+re.value; clamp("e"); sync(); };
+  cv.onpointerdown=e=>{ if(!buf) return; const r=cv.getBoundingClientRect(); const t=(e.clientX-r.left)/r.width*buf.duration;
+    if(Math.abs(t-start)<Math.abs(t-end)){ start=t; clamp("s"); } else { end=t; clamp("e"); } sync(); };
+  function loop(){ draw(); if(media && !media.paused){ if(stopAt!=null && media.currentTime>=stopAt){ media.pause(); stopAt=null; } raf=requestAnimationFrame(loop); } }
+  root.querySelector(".t-play").onclick=()=>{ if(!media) return; if(!media.paused){ media.pause(); return; } media.currentTime=start; stopAt=end; media.play().then(()=>{ cancelAnimationFrame(raf); loop(); }).catch(()=>{}); };
+  root.querySelector(".t-in").onclick=()=>{ if(!media||!buf) return; start=media.currentTime; clamp("s"); sync(); };
+  root.querySelector(".t-out").onclick=()=>{ if(!media||!buf) return; end=media.currentTime; clamp("e"); sync(); };
+  root.querySelector(".t-reset").onclick=()=>{ if(!buf) return; start=0; end=max?Math.min(buf.duration,max):buf.duration; sync(); };
+  return {
+    set(b, m){
+      buf=b; media=m; const d=b.duration;
+      [rs,re].forEach(r=>{ r.max=d.toFixed(1); });
+      const ch=b.getChannelData(0), n=150, step=Math.max(1,Math.floor(ch.length/n)); pk=[];
+      let top=0; for(let i=0;i<n;i++){ let mx=0; for(let j=i*step;j<(i+1)*step&&j<ch.length;j+=4) mx=Math.max(mx,Math.abs(ch[j])); pk.push(mx); top=Math.max(top,mx); }
+      if(top>0) pk=pk.map(x=>x/top);
+      start=0; end=max?Math.min(d,max):d; root.hidden=false;
+      if(media){ media.onplay=()=>{ cancelAnimationFrame(raf); loop(); }; media.onseeked=draw; }
+      sync();
+    },
+    get(){ return {start,end}; },
+    clear(){ buf=null; media=null; root.hidden=true; draw(); }
+  };
+}
+
 /* ---------- add voice panel ---------- */
-let pendingOrig=null;
+let pendingOrig=null, addBuf=null, addBlob=null, addOrig=null, addSliceT=null;
+const addTrim=makeTrimmer($("addTrim"),{max:20,min:3,label:"חיתוך הדגימה",onChange:()=>{ clearTimeout(addSliceT); addSliceT=setTimeout(updatePending,250); }});
+async function updatePending(){
+  if(!addBuf) return; const {start,end}=addTrim.get();
+  pending=await sliceWav(addBuf,start,end); updateSave();
+  setAdd(`דגימה של ${pending.secs.toFixed(1)} שניות מוכנה.${pending.secs<8?" עדיף לפחות 10 שניות.":""}`,"ok");
+}
 function showAddPreview(){
   const pv=$("addPreview"); if(pv.src) URL.revokeObjectURL(pv.src);
-  if(pending){ pv.src=URL.createObjectURL(pending.wav); pv.hidden=false; $("cleanRow").hidden=false; $("undoClean").hidden=!pendingOrig; }
-  else { pv.removeAttribute("src"); pv.hidden=true; $("cleanRow").hidden=true; }
+  if(addBlob){ pv.src=URL.createObjectURL(addBlob); pv.hidden=false; $("cleanRow").hidden=false; $("undoClean").hidden=!addOrig; }
+  else { pv.removeAttribute("src"); pv.hidden=true; $("cleanRow").hidden=true; addTrim.clear(); }
 }
-function openAdd(){ $("addPanel").hidden=false; pending=null; pendingOrig=null; showAddPreview(); drawWave(null); $("voiceName").value=""; $("consent").checked=false; updateSave(); $("addPanel").scrollIntoView({behavior:"smooth"}); }
+function openAdd(){ $("addPanel").hidden=false; pending=null; addBuf=null; addBlob=null; addOrig=null; showAddPreview(); $("voiceName").value=""; $("consent").checked=false; updateSave(); $("addPanel").scrollIntoView({behavior:"smooth"}); }
 $("cancelAdd").onclick=()=>{ stopRec(); $("addPanel").hidden=true; };
 function setAdd(msg,cls=""){ const s=$("addStatus"); s.textContent=msg; s.className="status "+cls; }
 function updateSave(){ $("saveVoice").disabled = !(pending && $("consent").checked && $("voiceName").value.trim()); }
 ["consent","voiceName"].forEach(id=>$(id).addEventListener("input",updateSave));
 
-async function takeSample(blob){
+async function takeSample(blob, keepOrig=false){
   try{
     setAdd("מעבד את הדגימה…");
-    const r = await toWav(blob);
-    if(r.secs < 5){ setAdd(`הדגימה קצרה מדי (${r.secs.toFixed(1)} שנ'). צריך לפחות 5 שניות, עדיף 10.`,"err"); pending=null; drawWave(r.peaks); updateSave(); return; }
-    pending = r; pendingOrig = null; drawWave(r.peaks); showAddPreview();
-    setAdd(r.secs>20 ? `נלקחו 20 השניות הראשונות מתוך ${r.secs.toFixed(0)}.` : `דגימה של ${r.secs.toFixed(1)} שניות מוכנה.`,"ok");
+    const buf=await decode(blob);
+    if(buf.duration<4){ setAdd(`הדגימה קצרה מדי (${buf.duration.toFixed(1)} שנ'). צריך לפחות 5 שניות, עדיף 10.`,"err"); pending=null; updateSave(); return; }
+    if(buf.duration>600){ setAdd("הקובץ ארוך מדי. העלה קובץ של עד 10 דקות.","err"); return; }
+    if(!keepOrig) addOrig=null;
+    addBuf=buf; addBlob=blob; showAddPreview(); addTrim.set(buf,$("addPreview")); await updatePending();
+    if(buf.duration>20) setAdd(`הקובץ באורך ${buf.duration.toFixed(0)} שניות. בחר בחיתוך קטע של עד 20 שניות עם דיבור ברור.`,"ok");
   }catch(e){ pending=null; setAdd("לא הצלחתי לקרוא את הקובץ. נסה קובץ MP3, WAV או M4A.","err"); }
   updateSave();
 }
@@ -1086,15 +1201,20 @@ async function convertVoice(srcWav, v){
   return await fetchBlob(url);
 }
 function setVc(msg,cls=""){ const s=$("vcStatus"); s.textContent=msg; s.className="status "+cls; }
+let vcBuf=null, vcBlob=null;
+const vcTrim=makeTrimmer($("vcTrim"),{max:60,min:1,label:"חיתוך ההקלטה",onChange:(st,en)=>{ vcSrc={secs:en-st}; }});
+async function vcSlice(){ const {start,end}=vcTrim.get(); return await sliceWav(vcBuf,start,end); }
 async function takeVcSource(blob){
   try{
     setVc("מעבד את ההקלטה…");
-    const r=await toWav(blob, 60);
-    if(r.secs<1){ setVc("ההקלטה קצרה מדי.","err"); vcSrc=null; return; }
-    vcSrc=r; drawWave(r.peaks,"vcWave");
-    const pv=$("vcPreview"); if(pv.src) URL.revokeObjectURL(pv.src); pv.src=URL.createObjectURL(r.wav); pv.hidden=false;
+    const buf=await decode(blob);
+    if(buf.duration<1){ setVc("ההקלטה קצרה מדי.","err"); vcSrc=null; return; }
+    if(buf.duration>600){ setVc("הקובץ ארוך מדי. העלה קובץ של עד 10 דקות.","err"); return; }
+    vcBuf=buf; vcBlob=blob;
+    const pv=$("vcPreview"); if(pv.src) URL.revokeObjectURL(pv.src); pv.src=URL.createObjectURL(blob); pv.hidden=false;
+    vcTrim.set(buf,pv); vcSrc={secs:vcTrim.get().end-vcTrim.get().start};
     $("vcClearRow").hidden=false; $("vcRecBtn").textContent="הקלטה חדשה"; $("vcUpLabel").textContent="העלאת קובץ אחר"; $("sttBox").hidden=true;
-    setVc(r.secs>60 ? `נלקחו 60 השניות הראשונות מתוך ${r.secs.toFixed(0)}.` : `הקלטה של ${r.secs.toFixed(1)} שניות מוכנה. בחר קול ולחץ "המרה".`,"ok");
+    setVc(buf.duration>60 ? `ההקלטה באורך ${buf.duration.toFixed(0)} שניות. בחר בחיתוך קטע של עד 60 שניות.` : `הקלטה של ${buf.duration.toFixed(1)} שניות מוכנה. אפשר לחתוך אותה, ואז ללחוץ "המרה".`,"ok");
   }catch{ vcSrc=null; setVc("לא הצלחתי לקרוא את הקובץ. נסה MP3, WAV, M4A או סרטון MP4.","err"); }
   count();
 }
@@ -1113,9 +1233,8 @@ async function vcStart(){
 }
 function vcStop(){ clearInterval(vcTimer); if(vcRec&&vcRec.state!=="inactive") vcRec.stop(); }
 $("vcClear").onclick=()=>{
-  vcStop(); vcSrc=null;
-  const pv=$("vcPreview"); pv.pause(); if(pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute("src"); pv.hidden=true;
-  drawWave(null,"vcWave"); $("vcClearRow").hidden=true; $("sttBox").hidden=true;
+  vcStop(); vcSrc=null; vcBuf=null; vcBlob=null; vcTrim.clear();
+  const pv=$("vcPreview"); pv.pause(); if(pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute("src"); pv.hidden=true; $("vcClearRow").hidden=true; $("sttBox").hidden=true;
   $("vcRecBtn").textContent="הקלטה"; $("vcUpLabel").textContent="העלאת הקלטה";
   setVc("ההקלטה נמחקה. הקלט או העלה הקלטה חדשה."); count();
 };
@@ -1126,8 +1245,9 @@ async function runVC(){
   const v=voiceById(selected); const t0=Date.now(); let tick=null;
   try{
     tick=setTimeout(()=>{ tick=ticker(t0,"ממיר"); },4000);
-    const blob=await convertVoice(vcSrc.wav, v);
-    const take={ id:"t"+Date.now(), text:`המרת הקלטה של ${vcSrc.secs.toFixed(0)} שנ'`, voice:v.name, blob, created:Date.now(), kind:"audio" };
+    const sl=await vcSlice();
+    const blob=await convertVoice(sl.wav, v);
+    const take={ id:"t"+Date.now(), text:`המרת הקלטה של ${sl.secs.toFixed(0)} שנ'`, voice:v.name, blob, created:Date.now(), kind:"audio" };
     await put("takes",take); renderTakes(take.id);
     setGen(`מוכן אחרי ${Math.round((Date.now()-t0)/1000)} שניות.`,"ok");
   }catch(e){ delete spaces[VC_BASE]; showErr(e); }
@@ -1142,7 +1262,7 @@ $("sttBtn").onclick=async()=>{
   try{
     stage="חיבור לשרת התמלול"; setGen("מתחבר לשרת התמלול…");
     const sp=await connectSpace(STT_BASE, pickSTT, "שרת התמלול");
-    stage="העלאת ההקלטה"; const f=await upload(vcSrc.wav, sp.api, "audio.wav");
+    stage="העלאת ההקלטה"; const f=await upload((await vcSlice()).wav, sp.api, "audio.wav");
     stage="תמלול"; tick=ticker(t0,"מתמלל");
     const data=sp.params.map((p,i)=>{ const n=p.parameter_name||""; if(/task/.test(n)) return "transcribe"; if(i===0||/input|audio|file/.test(n)) return f; return p.parameter_default??null; });
     const out=await callAny(data, sp.api, sp.fn, sp.cfg);
@@ -1171,35 +1291,39 @@ $("cleanBtn").onclick=async()=>{
     const arr=Array.isArray(out)?out:[out];
     const url=fileUrl(arr[0],sp.api) || audioUrl(arr,sp.api);
     if(!url) throw new Error("לא התקבל קובץ נקי");
-    const cleaned=await toWav(await fetchBlob(url), 20);
-    pendingOrig=pendingOrig||pending; pending=cleaned; drawWave(cleaned.peaks); showAddPreview();
-    setAdd("הרעשים נוקו. האזן לתוצאה. אפשר לחזור למקור אם המקור נשמע טוב יותר.","ok");
+    const cleanBlob=await fetchBlob(url);
+    const prev={blob:addBlob};
+    await takeSample(cleanBlob, true); addOrig=addOrig||prev; showAddPreview(); addTrim.set(addBuf,$("addPreview")); await updatePending();
+    setAdd("הרעשים נוקו. האזן לתוצאה. אפשר לחזור למקור אם המקור נשמע טוב יותר.","ok"); $("undoClean").hidden=false;
     setGen("ניקוי הרעשים הסתיים.","ok");
   }catch(e){ delete spaces[ENH_BASE]; showErr(e); setAdd("הניקוי נכשל. אפשר לשמור את הדגימה גם בלי ניקוי.","err"); }
   finally{ clearInterval(tick); busy=false; count(); $("cleanBtn").disabled=false; updateSave(); }
 };
-$("undoClean").onclick=()=>{ if(!pendingOrig) return; pending=pendingOrig; pendingOrig=null; drawWave(pending.peaks); showAddPreview(); setAdd("חזרת לדגימה המקורית.","ok"); };
+$("undoClean").onclick=async()=>{ if(!addOrig) return; const o=addOrig; addOrig=null; await takeSample(o.blob); setAdd("חזרת לדגימה המקורית.","ok"); };
 
 /* ---------- video dubbing ---------- */
 let dubFile=null, dubSrc=null;
 function setDub(msg,cls=""){ const s=$("dubStatus"); s.textContent=msg; s.className="status "+cls; }
+let dubBuf=null;
+const dubTrim=makeTrimmer($("dubTrim"),{max:60,min:1,label:"חיתוך הסרטון",onChange:(st,en)=>{ dubSrc={secs:en-st}; }});
 $("dubFile").onchange=async e=>{
   const f=e.target.files[0]; e.target.value=""; if(!f) return;
-  dubFile=f; dubSrc=null; count();
+  dubFile=f; dubSrc=null; dubBuf=null; count();
   const pv=$("dubPreview"); if(pv.src) URL.revokeObjectURL(pv.src); pv.src=URL.createObjectURL(f); pv.hidden=false;
   $("dubClear").hidden=false; $("dubLabel").textContent="העלאת סרטון אחר";
   try{
     setDub("מחלץ את הדיבור מהסרטון…");
-    dubSrc=await toWav(f, 60);
-    setDub(dubSrc.secs>60 ? `הסרטון ארוך מ-60 שניות. ידובבו 60 השניות הראשונות.` : `סרטון של ${dubSrc.secs.toFixed(1)} שניות מוכן. בחר קול ולחץ "דיבוב הסרטון".`,"ok");
-  }catch{ dubSrc=null; setDub("לא הצלחתי לחלץ קול מהסרטון. נסה סרטון MP4 רגיל מהטלפון.","err"); }
+    dubBuf=await decode(f);
+    dubTrim.set(dubBuf,pv); dubSrc={secs:dubTrim.get().end-dubTrim.get().start};
+    setDub(dubBuf.duration>60 ? `הסרטון באורך ${dubBuf.duration.toFixed(0)} שניות. בחר בחיתוך קטע של עד 60 שניות.` : `סרטון של ${dubBuf.duration.toFixed(1)} שניות מוכן. אפשר לחתוך אותו, ואז ללחוץ "דיבוב הסרטון".`,"ok");
+  }catch{ dubSrc=null; dubTrim.clear(); setDub("לא הצלחתי לחלץ קול מהסרטון. נסה סרטון MP4 רגיל מהטלפון.","err"); }
   count();
 };
 $("dubClear").onclick=()=>{
-  dubFile=null; dubSrc=null; const pv=$("dubPreview"); pv.pause(); if(pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute("src"); pv.hidden=true;
+  dubFile=null; dubSrc=null; dubBuf=null; dubTrim.clear(); const pv=$("dubPreview"); pv.pause(); if(pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute("src"); pv.hidden=true;
   $("dubClear").hidden=true; $("dubLabel").textContent="העלאת סרטון"; setDub("הסרטון נמחק. העלה סרטון חדש."); count();
 };
-async function muxVideo(file, audioBlob, maxSecs){
+async function muxVideo(file, audioBlob, startAt, maxSecs){
   const v=document.createElement("video");
   v.src=URL.createObjectURL(file); v.muted=true; v.playsInline=true; v.preload="auto";
   v.style.cssText="position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;bottom:0;left:0";
@@ -1212,7 +1336,7 @@ async function muxVideo(file, audioBlob, maxSecs){
     const buf=await ctx.decodeAudioData(await audioBlob.arrayBuffer());
     const dest=ctx.createMediaStreamDestination();
     const mime=["video/mp4;codecs=avc1,mp4a","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(m=>MediaRecorder.isTypeSupported(m))||"";
-    v.currentTime=0; await v.play();
+    v.currentTime=startAt; await new Promise(r=>{ v.onseeked=r; setTimeout(r,1500); }); await v.play();
     const vs=cap();
     const stream=new MediaStream([...vs.getVideoTracks(), ...dest.stream.getAudioTracks()]);
     const rec=new MediaRecorder(stream, mime?{mimeType:mime}:{}); const parts=[];
@@ -1220,9 +1344,9 @@ async function muxVideo(file, audioBlob, maxSecs){
     const done=new Promise(r=>rec.onstop=r);
     const src=ctx.createBufferSource(); src.buffer=buf; src.connect(dest);
     rec.start(250); src.start();
-    const dur=Math.min(v.duration||maxSecs, maxSecs, buf.duration+0.3);
+    const dur=Math.min(maxSecs, buf.duration+0.3); const endAt=startAt+dur;
     const t0=Date.now();
-    await new Promise(res=>{ const iv=setInterval(()=>{ setGen(`בונה את הסרטון עם הקול החדש… ${Math.min(dur,v.currentTime).toFixed(0)} מתוך ${dur.toFixed(0)} שנ'. השאר את המסך פתוח.`); if(v.ended||v.currentTime>=dur||(Date.now()-t0)/1000>dur+5){ clearInterval(iv); res(); } },300); });
+    await new Promise(res=>{ const iv=setInterval(()=>{ setGen(`בונה את הסרטון עם הקול החדש… ${Math.max(0,Math.min(dur,v.currentTime-startAt)).toFixed(0)} מתוך ${dur.toFixed(0)} שנ'. השאר את המסך פתוח.`); if(v.ended||v.currentTime>=endAt||(Date.now()-t0)/1000>dur+5){ clearInterval(iv); res(); } },300); });
     rec.stop(); v.pause(); try{src.stop();}catch{} await done; ctx.close?.();
     return new Blob(parts,{type:(mime||"video/webm").split(";")[0]});
   } finally { URL.revokeObjectURL(v.src); v.remove(); }
@@ -1232,13 +1356,14 @@ async function runDub(){
   const v=voiceById(selected); const t0=Date.now(); let tick=null;
   try{
     tick=setTimeout(()=>{ tick=ticker(t0,"ממיר את הדיבור"); },4000);
-    const audio=await convertVoice(dubSrc.wav, v);
+    const {start:ds,end:de}=dubTrim.get(); const sl=await sliceWav(dubBuf,ds,de);
+    const audio=await convertVoice(sl.wav, v);
     clearTimeout(tick); clearInterval(tick);
     stage="בניית הסרטון";
     let blob, kind="video";
-    try{ blob=await muxVideo(dubFile, audio, 60); }
+    try{ blob=await muxVideo(dubFile, audio, ds, de-ds); }
     catch(e){ blob=audio; kind="audio"; setGen(`לא הצלחתי לבנות סרטון בדפדפן הזה (${errText(e)}). שמרתי את הקול המדובב כקובץ שמע.`,"err"); }
-    const take={ id:"t"+Date.now(), text:`דיבוב סרטון של ${Math.min(dubSrc.secs,60).toFixed(0)} שנ'`, voice:v.name, blob, created:Date.now(), kind };
+    const take={ id:"t"+Date.now(), text:`דיבוב סרטון של ${(de-ds).toFixed(0)} שנ'`, voice:v.name, blob, created:Date.now(), kind };
     await put("takes",take); renderTakes(take.id);
     if(kind==="video") setGen(`הסרטון המדובב מוכן אחרי ${Math.round((Date.now()-t0)/1000)} שניות.`,"ok");
   }catch(e){ delete spaces[VC_BASE]; showErr(e); }
@@ -1318,14 +1443,14 @@ $("vcSing").addEventListener("change",markRec);
 function applyTheme(t){
   const root=document.documentElement;
   if(t==="system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme",t);
-  try{ localStorage.setItem("koli.theme",t); }catch{}
+  try{ localStorage.setItem("koli.theme2",t); }catch{}
   document.querySelectorAll("[data-theme-set]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.themeSet===t)));
   const light = t==="light" || (t==="system" && matchMedia("(prefers-color-scheme: light)").matches);
   document.querySelector('meta[name="theme-color"]').setAttribute("content", light ? "#f7f1ea" : "#0c0b12");
 }
 document.querySelectorAll("[data-theme-set]").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeSet));
-matchMedia("(prefers-color-scheme: light)").addEventListener?.("change",()=>{ let t=null; try{t=localStorage.getItem("koli.theme");}catch{} if(t==="system") applyTheme("system"); });
-{ let t=null; try{ t=localStorage.getItem("koli.theme"); }catch{} applyTheme(t==="light"||t==="system"?t:"dark"); }
+matchMedia("(prefers-color-scheme: light)").addEventListener?.("change",()=>{ let t=null; try{t=localStorage.getItem("koli.theme2");}catch{} if(t==="system") applyTheme("system"); });
+{ let t=null; try{ t=localStorage.getItem("koli.theme2"); }catch{} applyTheme(t==="dark"||t==="system"?t:"light"); }
 
 /* ---------- account ---------- */
 function hfUi(){ const t=token(); $("hfState").textContent = t ? "מחובר" : "לא מחובר"; $("hfToken").value = t ? "••••••••"+t.slice(-4) : ""; }
