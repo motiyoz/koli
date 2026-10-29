@@ -190,12 +190,15 @@ footer{font-size:.8rem;color:var(--muted);text-align:center}
       <p class="hint" style="margin:0">הקלט או העלה הקלטה. הקול שבחרת יגיד בדיוק את אותן מילים, באותו קצב ובאותה אינטונציה.</p>
       <div class="row">
         <button class="btn" id="vcRecBtn" type="button">הקלטה</button>
-        <label class="btn" for="vcFile" style="display:inline-block">העלאת הקלטה</label>
+        <label class="btn" for="vcFile" id="vcUpLabel" style="display:inline-block">העלאת הקלטה</label>
         <input type="file" id="vcFile" accept="audio/*,video/*" hidden>
       </div>
       <canvas class="wave" id="vcWave" width="560" height="56" aria-hidden="true"></canvas>
       <p class="status" id="vcStatus">עוד לא נבחרה הקלטה.</p>
       <audio id="vcPreview" controls hidden></audio>
+      <div class="row" id="vcClearRow" hidden>
+        <button class="btn" id="vcClear" type="button">מחיקת ההקלטה והתחלה מחדש</button>
+      </div>
       <details>
         <summary>כיוון עדין</summary>
         <div class="panel">
@@ -511,7 +514,8 @@ async function takeVcSource(blob){
     const r=await toWav(blob, 60);
     if(r.secs<1){ setVc("ההקלטה קצרה מדי.","err"); vcSrc=null; return; }
     vcSrc=r; drawWave(r.peaks,"vcWave");
-    const pv=$("vcPreview"); pv.src=URL.createObjectURL(r.wav); pv.hidden=false;
+    const pv=$("vcPreview"); if(pv.src) URL.revokeObjectURL(pv.src); pv.src=URL.createObjectURL(r.wav); pv.hidden=false;
+    $("vcClearRow").hidden=false; $("vcRecBtn").textContent="הקלטה חדשה"; $("vcUpLabel").textContent="העלאת קובץ אחר";
     setVc(r.secs>60 ? `נלקחו 60 השניות הראשונות מתוך ${r.secs.toFixed(0)}.` : `הקלטה של ${r.secs.toFixed(1)} שניות מוכנה. בחר קול ולחץ "המרה".`,"ok");
   }catch{ vcSrc=null; setVc("לא הצלחתי לקרוא את הקובץ. נסה MP3, WAV, M4A או סרטון MP4.","err"); }
   count();
@@ -524,11 +528,19 @@ async function vcStart(){
     const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
     vcChunks=[]; vcRec=new MediaRecorder(stream);
     vcRec.ondataavailable=e=>e.data.size&&vcChunks.push(e.data);
-    vcRec.onstop=()=>{ stream.getTracks().forEach(t=>t.stop()); takeVcSource(new Blob(vcChunks,{type:vcRec.mimeType})); vcRec=null; $("vcRecBtn").textContent="הקלטה"; $("vcRecBtn").classList.remove("pulse"); };
+    vcRec.onstop=()=>{ stream.getTracks().forEach(t=>t.stop()); takeVcSource(new Blob(vcChunks,{type:vcRec.mimeType})); vcRec=null; $("vcRecBtn").classList.remove("pulse"); $("vcRecBtn").textContent = vcSrc ? "הקלטה חדשה" : "הקלטה"; };
     vcRec.start(); let n=0; $("vcRecBtn").textContent="עצירה (0)"; $("vcRecBtn").classList.add("pulse"); setVc("מקליט… דבר בקול רגיל.");
     vcTimer=setInterval(()=>{ n++; $("vcRecBtn").textContent=`עצירה (${n})`; if(n>=60) vcStop(); },1000);
   }catch{ setVc("אין גישה למיקרופון. אשר הרשאה בדפדפן, או העלה קובץ.","err"); }
 }
+function vcClear(){
+  vcStop(); vcSrc=null;
+  const pv=$("vcPreview"); pv.pause(); if(pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute("src"); pv.hidden=true;
+  drawWave(null,"vcWave"); $("vcClearRow").hidden=true;
+  $("vcRecBtn").textContent="הקלטה"; $("vcUpLabel").textContent="העלאת הקלטה";
+  setVc("ההקלטה נמחקה. הקלט או העלה הקלטה חדשה."); count();
+}
+$("vcClear").onclick=vcClear;
 function vcStop(){ clearInterval(vcTimer); if(vcRec&&vcRec.state!=="inactive") vcRec.stop(); }
 $("vcRecBtn").onclick=()=> vcRec ? vcStop() : vcStart();
 [["vcPitch","vcPitchOut"],["vcSteps","vcStepsOut"]].forEach(([i,o])=>{ $(i).oninput=()=>$(o).textContent=$(i).value; });
