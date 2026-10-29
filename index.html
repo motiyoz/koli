@@ -52,16 +52,6 @@ textarea{width:100%;min-height:130px;resize:vertical;font:1.05rem/1.6 var(--body
   border:1px solid var(--line);border-radius:12px;padding:12px}
 .count{font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted)}
 .count.over{color:var(--warn);font-weight:700}
-.nq-tools{display:flex;flex-direction:column;gap:10px;margin-top:10px}
-.nq-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.switch{display:flex;gap:8px;align-items:center;font-size:.92rem;font-weight:600}
-.switch input{width:18px;height:18px;accent-color:var(--accent)}
-.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
-.key{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:6px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2}
-.key b{font-size:1.5rem;font-weight:400;font-family:"Times New Roman","David",serif}
-.key span{font-size:.72rem;color:var(--muted)}
-.hint{font-size:.85rem;color:var(--muted);margin:0}
-textarea#text{font-size:1.15rem;line-height:1.9}
 label.field{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.92rem}
 input[type=text]{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 input[type=range]{width:100%;accent-color:var(--accent)}
@@ -80,6 +70,8 @@ canvas.wave{width:100%;height:56px;display:block}
 audio{width:100%}
 .take a{font-weight:700;color:var(--accent);font-size:.9rem}
 .empty{color:var(--muted);font-size:.92rem;margin:0}
+.tips{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
+.tips b{color:var(--ink)}
 details summary{cursor:pointer;font-weight:700;font-size:.92rem;color:var(--muted)}
 details[open] summary{margin-bottom:10px}
 .bar{position:fixed;inset:auto 0 0;background:var(--surface);border-top:1px solid var(--line);
@@ -138,19 +130,16 @@ footer{font-size:.8rem;color:var(--muted);text-align:center}
   <section aria-labelledby="h-script">
     <h2 id="h-script">מה להגיד <small class="count" id="count">0 / 300</small></h2>
     <textarea id="text" aria-label="טקסט להקראה">שלום! זו הקלטה ראשונה שלי עם קולי. ככה נשמע הקול המשובט שלי בעברית.</textarea>
-    <div class="nq-tools">
-      <div class="nq-row">
-        <button class="btn" id="nqBtn" type="button">ניקוד אוטומטי</button>
-        <button class="btn" id="unNqBtn" type="button">הסרת ניקוד</button>
-        <label class="switch" for="autoNq"><input type="checkbox" id="autoNq" checked>לנקד לפני כל הפקה</label>
-      </div>
-      <p class="status" id="nqStatus"></p>
-      <details>
-        <summary>מקלדת ניקוד לתיקון ידני</summary>
-        <p class="hint">שים את הסמן אחרי האות שרוצים לנקד, ולחץ על הסימן.</p>
-        <div class="keys" id="keys"></div>
-      </details>
-    </div>
+    <details>
+      <summary>איך לגרום לו לקרוא נכון</summary>
+      <ul class="tips">
+        <li>השרת מנקד בעצמו ומוחק ניקוד שמוסיפים, אז ניקוד לא עוזר. מה שכן עוזר הוא כתיב מלא: <b>אימא, כול, שולחן, תוכנית</b> במקום אמא, כל, שלחן, תכנית.</li>
+        <li>מילה שהוא קורא לא נכון: כתוב אותה כמו שהיא נשמעת. למשל <b>סיפר</b> במקום ספר כשהכוונה לפועל.</li>
+        <li>שמות ומילים לועזיות: כתוב פונטית, למשל <b>אייפון</b>, <b>וואטסאפ</b>.</li>
+        <li>משפטים קצרים עם פסיקים נקראים טוב יותר ממשפט ארוך אחד.</li>
+        <li>מספרים: כתוב במילים (<b>עשרים ושלוש</b> ולא 23).</li>
+      </ul>
+    </details>
     <details>
       <summary>כיוון עדין</summary>
       <div class="panel">
@@ -317,53 +306,10 @@ $("saveVoice").onclick=async()=>{
 
 /* ---------- script ---------- */
 const ta=$("text");
-function count(){ const n=ta.value.length; $("count").textContent=`${n} / ${MAX}${hasNiqqud(ta.value)?" כולל ניקוד":""}`; $("count").classList.toggle("over",n>MAX); $("genBtn").disabled = n===0 || n>MAX || busy; }
+function count(){ const n=ta.value.length; $("count").textContent=`${n} / ${MAX}`; $("count").classList.toggle("over",n>MAX); $("genBtn").disabled = n===0 || n>MAX || busy; }
 ta.addEventListener("input",()=>{ count(); try{localStorage.setItem("koli.text",ta.value);}catch{} });
 try{ const t=localStorage.getItem("koli.text"); if(t) ta.value=t; }catch{}
 [["exag","exagOut"],["pace","paceOut"],["temp","tempOut"]].forEach(([i,o])=>{ $(i).oninput=()=>$(o).textContent=$(i).value; });
-
-/* ---------- niqqud (Dicta Nakdan) ---------- */
-const NAKDAN="https://nakdan-2-0.loadbalancer.dicta.org.il/api";
-const HEB=/[\u05D0-\u05EA]/, MARKS=/[\u0591-\u05C7]/g;
-const hasNiqqud=t=>/[\u05B0-\u05BC\u05C1\u05C2\u05C7]/.test(t);
-const plain=t=>t.replace(MARKS,"");
-function setNq(msg,cls=""){ const s=$("nqStatus"); s.textContent=msg; s.className="status "+cls; }
-async function vocalize(text){
-  const body=JSON.stringify({task:"nakdan",genre:"modern",data:text,addmorph:false,keepqq:false,keepnikud:true});
-  let r=null, lastErr="";
-  for(const ct of ["text/plain;charset=UTF-8","application/json"]){
-    try{ r=await fetch(NAKDAN,{method:"POST",headers:{"Content-Type":ct},body}); if(r.ok) break; lastErr="שירות הניקוד החזיר שגיאה "+r.status; r=null; }
-    catch(e){ lastErr="אין תקשורת עם שירות הניקוד של דיקטה"; r=null; }
-  }
-  if(!r) throw new Error(lastErr);
-  const raw=await r.json(); const words=Array.isArray(raw)?raw:(raw?.data||[]);
-  if(!Array.isArray(words)||!words.length) throw new Error("תשובה לא צפויה משירות הניקוד");
-  return words.map(w=>{
-    if(w.sep) return w.word;
-    let o=Array.isArray(w.options)?w.options[0]:null; if(Array.isArray(o)) o=o[0];
-    return (typeof o==="string"&&o ? o : w.word).replace(/\|/g,"");
-  }).join("");
-}
-$("nqBtn").onclick=async()=>{
-  const t=ta.value; if(!HEB.test(t)){ setNq("אין כאן טקסט בעברית לנקד.","err"); return; }
-  $("nqBtn").disabled=true; setNq("מנקד…");
-  try{ ta.value=await vocalize(plain(t)); ta.dispatchEvent(new Event("input")); setNq("מנוקד. אם מילה נוקדה לא נכון, תקן אותה במקלדת הניקוד.","ok"); }
-  catch(e){ setNq(e.message+". אפשר לנקד ידנית במקלדת הניקוד.","err"); }
-  finally{ $("nqBtn").disabled=false; }
-};
-$("unNqBtn").onclick=()=>{ ta.value=plain(ta.value); ta.dispatchEvent(new Event("input")); setNq(""); };
-try{ const a=localStorage.getItem("koli.autonq"); if(a!==null) $("autoNq").checked=a==="1"; }catch{}
-$("autoNq").onchange=()=>{ try{localStorage.setItem("koli.autonq",$("autoNq").checked?"1":"0");}catch{} };
-const KEYS=[["\u05B8","קָמָץ"],["\u05B7","פַּתָח"],["\u05B5","צֵירֶה"],["\u05B6","סֶגּוֹל"],["\u05B4","חִירִיק"],["\u05B9","חוֹלָם"],["\u05BB","קֻבּוּץ"],["\u05B0","שְׁוָא"],
-  ["\u05B2","חֲטַף פַּתָח"],["\u05B1","חֱטַף סֶגּוֹל"],["\u05B3","חֳטַף קָמָץ"],["\u05BC","דָּגֵשׁ"],["\u05C1","שִׁי\u05DF יְמָנִית"],["\u05C2","שִׂי\u05DF שְׂמָאלִית"]];
-KEYS.forEach(([m,name])=>{
-  const b=document.createElement("button"); b.type="button"; b.className="key"; b.setAttribute("aria-label",name);
-  const g=document.createElement("b"); g.textContent="\u05D0"+m; const n=document.createElement("span"); n.textContent=name;
-  b.append(g,n);
-  b.addEventListener("pointerdown",e=>e.preventDefault());
-  b.onclick=()=>{ const i=ta.selectionStart??ta.value.length; ta.value=ta.value.slice(0,i)+m+ta.value.slice(ta.selectionEnd??i); ta.focus(); ta.setSelectionRange(i+1,i+1); ta.dispatchEvent(new Event("input")); };
-  $("keys").append(b);
-});
 
 /* ---------- generate ---------- */
 let busy=false, stage="";
@@ -398,26 +344,23 @@ async function callTTS(data){
     const e=(blk.match(/^event:\s*(.*)$/m)||[])[1]; const d=(blk.match(/^data:\s*(.*)$/m)||[])[1];
     if(e){ ev=e.trim(); if(d){ try{payload=JSON.parse(d);}catch{payload=d;} } if(ev==="complete"||ev==="error") break; }
   }
-  if(ev!=="complete"){ throw new Error(`השרת דחה את הבקשה: ${typeof payload==="string"?payload:JSON.stringify(payload)||"ללא פרטים"}`); }
+  if(ev!=="complete"){ throw new Error(`השרת דחה את הבקשה${payload?": "+(typeof payload==="string"?payload:JSON.stringify(payload)):" בלי פירוט. בדרך כלל זה עומס זמני או מכסה חינמית שנגמרה"}`); }
   return payload;
 }
 
 $("genBtn").onclick=async()=>{
   if(busy) return; busy=true; count();
-  const v=voices.find(x=>x.id===selected); let text=ta.value.trim();
-  if($("autoNq").checked && HEB.test(text) && !hasNiqqud(text)){
-    setGen("מנקד את הטקסט…");
-    try{ text=(await vocalize(text)).trim(); ta.value=text; count(); setNq("הטקסט נוקד אוטומטית. אפשר לתקן מילים במקלדת הניקוד.","ok"); }
-    catch(e){ setNq(e.message+". ממשיך בלי ניקוד.","err"); }
-  }
-  if(text.length>MAX){ setGen(`אחרי הניקוד הטקסט ארוך מ-${MAX} תווים (${text.length}). קצר אותו או פצל לשתי הפקות.`,"err"); busy=false; count(); return; }
+  const v=voices.find(x=>x.id===selected); const text=ta.value.trim();
   const t0=Date.now(); const tick=setInterval(()=>setGen(`מפיק… ${Math.round((Date.now()-t0)/1000)} שנ'. בשרת החינמי זה יכול לקחת עד דקה או שתיים.`),1000);
   try{
     stage="חיבור לשרת";
     setGen("מתחבר לשרת החינמי…");
     const ref = v.builtin ? null : await upload(v.wav);
     stage="הפקה";
-    const data=await callTTS([ text, ref, "he", +$("exag").value, +$("temp").value, 0, +$("pace").value ]);
+    const args=[ text, ref, "he", +$("exag").value, +$("temp").value, 0, +$("pace").value ];
+    let data;
+    try{ data=await callTTS(args); }
+    catch(e1){ if(!/השרת דחה/.test(e1.message)) throw e1; setGen("השרת לא הצליח בפעם הראשונה, מנסה שוב…"); data=await callTTS(args); }
     const out=Array.isArray(data)?data[0]:data; let url= out?.url || (out?.path ? `${API}/file=${out.path}` : null);
     if(!url) throw new Error("no audio");
     let blob=null; try{ blob = await (await fetch(url)).blob(); }catch{}
