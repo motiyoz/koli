@@ -983,9 +983,8 @@ function loadVS(){
 const refCache=new Map();
 async function voiceRef(v){
   if(v.ttsDefault) return null;
-  if(v.builtin) return remote(v.url);
   const k=v.id+"@"+(myServer()||"shared");
-  if(!refCache.has(k)) refCache.set(k, await upload(v.wav));
+  if(!refCache.has(k)) refCache.set(k, await voiceFileFor(v, ttsApi()));
   return refCache.get(k);
 }
 async function ttsOnce(text, v){
