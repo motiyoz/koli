@@ -300,7 +300,14 @@ try{ const t=localStorage.getItem("koli.text"); if(t) ta.value=t; }catch{}
 [["exag","exagOut"],["pace","paceOut"],["temp","tempOut"]].forEach(([i,o])=>{ $(i).oninput=()=>$(o).textContent=$(i).value; });
 
 /* ---------- generate ---------- */
-let client=null, busy=false;
+let client=null, busy=false, stage="";
+function errText(e){
+  if(!e) return "לא ידוע";
+  if(typeof e==="string") return e;
+  const parts=[e.message,e.title,e.original_msg,e.error].filter(x=>typeof x==="string"&&x);
+  if(parts.length) return parts.join(" | ");
+  try{ return JSON.stringify(e); }catch{ return String(e); }
+}
 function setGen(msg,cls=""){ const s=$("genStatus"); s.textContent=msg; s.className="status "+cls; }
 async function getClient(){ if(!client){ setGen("מתחבר לשרת החינמי…"); client = await Client.connect(SPACE); } return client; }
 
@@ -309,16 +316,13 @@ $("genBtn").onclick=async()=>{
   const v=voices.find(x=>x.id===selected); const text=ta.value.trim();
   const t0=Date.now(); const tick=setInterval(()=>setGen(`מפיק… ${Math.round((Date.now()-t0)/1000)} שנ'. בשרת החינמי זה יכול לקחת עד דקה או שתיים.`),1000);
   try{
+    stage="חיבור לשרת";
     const app=await getClient();
-    const res=await app.predict(ENDPOINT,{
-      text_input:text,
-      audio_prompt_path_input: v.builtin ? null : handle_file(v.wav),
-      language_id_input:"he",
-      exaggeration_input:+$("exag").value,
-      temperature_input:+$("temp").value,
-      seed_num_input:0,
-      cfgw_input:+$("pace").value
-    });
+    stage="הפקה";
+    const args=[ text, v.builtin ? null : handle_file(v.wav), "he", +$("exag").value, +$("temp").value, 0, +$("pace").value ];
+    let res;
+    try{ res=await app.predict(ENDPOINT, args); }
+    catch(e1){ if(/endpoint|not found|fn_index/i.test(errText(e1))) res=await app.predict(0, args); else throw e1; }
     const out=res?.data?.[0]; const url= out?.url || (typeof out==="string"?out:null);
     if(!url) throw new Error("no audio");
     let blob=null; try{ blob = await (await fetch(url)).blob(); }catch{}
@@ -326,11 +330,11 @@ $("genBtn").onclick=async()=>{
     await put("takes",take); renderTakes(take.id);
     setGen(`מוכן אחרי ${Math.round((Date.now()-t0)/1000)} שניות.`,"ok");
   }catch(e){
-    const m=String(e?.message||e);
+    const m=errText(e);
     client=null;
     setGen(/quota|GPU|exceeded/i.test(m) ? "נגמרה המכסה החינמית של השרת לעכשיו. נסה שוב בעוד כמה דקות."
          : /queue|full|busy/i.test(m) ? "השרת עמוס. נסה שוב עוד רגע."
-         : "ההפקה נכשלה. בדוק חיבור לאינטרנט ונסה שוב. אם זה חוזר, ייתכן שהשרת החינמי לא זמין כרגע.","err");
+         : `ההפקה נכשלה בשלב ${stage}. נסה שוב עוד רגע. פרטים: ${m.slice(0,220)}`,"err");
     console.error(e);
   }finally{ clearInterval(tick); busy=false; count(); }
 };
