@@ -1,6 +1,6 @@
 // Koli service worker: keeps the app shell available offline and loads fast.
-const VERSION = "koli-v3";
-const SHELL = ["./", "index.html", "style.css?v=3", "app.js?v=3", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon.svg", "apple-touch-icon.png"];
+const VERSION = "koli-v4";
+const SHELL = ["./", "index.html", "style.css?v=4", "app.js?v=4", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon.svg", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

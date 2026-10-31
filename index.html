@@ -3,141 +3,85 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f7f1ea">
+<meta name="theme-color" content="#f2f2f7">
 <script>
 (function(){var t=null;try{t=localStorage.getItem("koli.theme2")}catch(e){}
 if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");})();
 </script>
 <title>קולי</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
+
+<header class="topbar">
+  <span class="app-name"><img src="icon-192.png" alt="" width="22" height="22">קולי</span>
+</header>
+
 <main>
-  <header>
-    <span class="onair">ON AIR</span>
-    <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <h1>קולי</h1>
-    <p class="tag">כל קול, בעברית, ישר מהטלפון</p>
-  </header>
+  <h1 class="large-title" id="pageTitle">טקסט לקול</h1>
 
-  <p class="modes-title">מה עושים היום?</p>
-  <div class="modes" role="tablist" aria-label="סוג הפקה">
-    <button class="mode" role="tab" id="mode-tts" data-mode="tts" type="button" aria-selected="true">
-      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h10M4 16h7"/><path d="M17 13v6M20 14.5v3M14 15v1"/></svg></span>
-      <b>טקסט לקול</b><small>כותבים, והקול מקריא</small></button>
-    <button class="mode" role="tab" id="mode-vc" data-mode="vc" type="button" aria-selected="false">
-      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="6" height="11" rx="3"/><path d="M3 11a5 5 0 0 0 10 0M8 16v4"/><path d="M15 8l3 3-3 3M18 11h3"/></svg></span>
-      <b>הקלטה לקול אחר</b><small>אותן מילים, קול אחר</small></button>
-    <button class="mode" role="tab" id="mode-dub" data-mode="dub" type="button" aria-selected="false">
-      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2v8l-4-2"/><path d="M8 10v4M11 9v6"/></svg></span>
-      <b>דיבוב סרטון</b><small>מחליפים את הקול בווידאו</small></button>
-    <button class="mode" role="tab" id="mode-dlg" data-mode="dlg" type="button" aria-selected="false">
-      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M19 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-4-3h-3"/></svg></span>
-      <b>דיאלוג</b><small>כמה דמויות, כמה קולות</small></button>
-  </div>
+  <!-- ============ WORK VIEW ============ -->
+  <div id="workView" class="view">
 
-  <section aria-labelledby="h-voices">
-    <h2 id="h-voices">בחירת קול <small id="voiceCount"></small></h2>
-    <p class="group-label">הקולות שלי</p>
-    <div class="voices" id="myVoices" role="group" aria-label="הקולות שלי"></div>
-    <p class="group-label">קולות המערכת</p>
-    <div class="voices" id="sysVoices" role="group" aria-label="קולות המערכת"></div>
-    <p class="current">קול נבחר: <b id="curName"></b></p>
-    <div class="voice-actions" id="voiceActions" hidden>
-      <button class="btn" id="renameVoice" type="button">שינוי שם</button>
-      <button class="btn" id="delVoice" type="button">מחיקה</button>
+    <div class="group">
+      <button class="cell cell-nav" id="voiceRow" type="button" aria-haspopup="dialog">
+        <span class="cell-label">קול</span>
+        <span class="cell-value"><span class="av sm" id="voiceRowAv" aria-hidden="true"></span><span id="curName"></span></span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
     </div>
-    <div class="rename" id="renameRow" hidden>
-      <input type="text" id="renameIn" maxlength="30" aria-label="שם חדש לקול">
-      <button class="btn primary" id="renameSave" type="button">שמירה</button>
-    </div>
-  </section>
 
-  <section id="addPanel" hidden aria-labelledby="h-add">
-    <h2 id="h-add">קול חדש <small>10–20 שניות של דיבור ברור</small></h2>
-    <div class="panel">
-      <label class="field" for="voiceName">שם הקול
-        <input type="text" id="voiceName" placeholder="למשל: הקול שלי" maxlength="30">
-      </label>
-      <div class="row">
-        <button class="btn" id="recBtn" type="button">הקלטה</button>
-        <label class="btn" for="fileIn" style="display:inline-block">העלאת קובץ שמע</label>
-        <input type="file" id="fileIn" accept="audio/*" hidden>
-      </div>
-      <p class="status" id="addStatus">דבר בשקט יחסי, בלי מוזיקה ברקע.</p>
-      <audio id="addPreview" controls hidden></audio>
-      <div class="trim" id="addTrim" hidden></div>
-      <div class="row" id="cleanRow" hidden>
-        <button class="btn" id="cleanBtn" type="button">ניקוי רעשי רקע</button>
-        <button class="btn" id="undoClean" type="button" hidden>חזרה למקור</button>
-      </div>
-      <label class="consent" for="consent">
-        <input type="checkbox" id="consent">
-        <span>זה הקול שלי, או שיש לי הסכמה מפורשת של בעל הקול לשבט אותו.</span>
-      </label>
-      <div class="row">
-        <button class="btn primary" id="saveVoice" type="button" disabled>שמירת הקול</button>
-        <button class="btn" id="cancelAdd" type="button">ביטול</button>
-      </div>
-    </div>
-  </section>
+    <!-- text to speech -->
+    <section id="ttsPanel" class="card" aria-labelledby="h-script">
+      <div class="card-head"><h2 id="h-script">טקסט</h2><small class="count" id="count"></small></div>
+      <textarea id="text" maxlength="5000" aria-label="טקסט להקראה">שלום! זו הקלטה ראשונה שלי עם קולי. ככה נשמע הקול המשובט שלי בעברית.</textarea>
+      <p class="readas" id="readAs" hidden><b>כך זה יוקרא:</b> <span id="readAsText"></span></p>
+      <details class="disclosure">
+        <summary>כיוון קול <span class="sum-note" id="vsNote"></span></summary>
+        <div class="panel">
+          <div class="tune-top"><span class="hint">נשמר לכל קול בנפרד.</span>
+            <button class="btn sm" type="button" data-rec-all="tts">הכול למומלץ</button></div>
+          <div class="slider"><label for="exag">הבעה</label><output id="exagOut">0.5</output>
+            <input type="range" id="exag" min="0.25" max="2" step="0.05" value="0.5">
+            <p class="rec">כמה רגש. נמוך רגוע, גבוה דרמטי. <button type="button" class="rec-btn" data-set="exag" data-val="0.5">מומלץ: 0.5</button></p></div>
+          <div class="slider"><label for="pace">קצב ויציבות</label><output id="paceOut">0.5</output>
+            <input type="range" id="pace" min="0.2" max="1" step="0.05" value="0.5">
+            <p class="rec">נמוך איטי וברור יותר, גבוה מהיר יותר. <button type="button" class="rec-btn" data-set="pace" data-val="0.5">מומלץ: 0.5</button></p></div>
+          <div class="slider"><label for="temp">גיוון</label><output id="tempOut">0.8</output>
+            <input type="range" id="temp" min="0.3" max="1.5" step="0.05" value="0.8">
+            <p class="rec">נמוך יציב, גבוה חי יותר אבל עלול לשבש מילים. <button type="button" class="rec-btn" data-set="temp" data-val="0.8">מומלץ: 0.8</button></p></div>
+        </div>
+      </details>
+      <details class="disclosure">
+        <summary>איך לגרום לו לקרוא נכון</summary>
+        <ul class="tips">
+          <li>מספרים, אחוזים, ₪ ושעות מומרים למילים אוטומטית. בדוק בשורה "כך זה יוקרא".</li>
+          <li>כתיב מלא עוזר: <b>אימא, כול, שולחן, תוכנית</b> במקום אמא, כל, שלחן, תכנית.</li>
+          <li>מילה שנקראת לא נכון: הוסף אותה למילון ההגייה כמו שהיא נשמעת, למשל <b>סיפר</b> כשהכוונה לפועל.</li>
+          <li>שמות ומילים לועזיות: כתוב פונטית, למשל <b>אייפון</b>, <b>וואטסאפ</b>.</li>
+          <li>משפטים קצרים עם פסיקים נקראים טוב יותר ממשפט ארוך אחד.</li>
+        </ul>
+      </details>
+    </section>
 
-  <section id="ttsPanel" aria-labelledby="h-script">
-    <span class="mode-tag">טקסט לקול</span>
-    <h2 id="h-script">מה להגיד <small class="count" id="count"></small></h2>
-    <textarea id="text" maxlength="5000" aria-label="טקסט להקראה">שלום! זו הקלטה ראשונה שלי עם קולי. ככה נשמע הקול המשובט שלי בעברית.</textarea>
-    <p class="readas" id="readAs" hidden><b>כך זה יוקרא:</b> <span id="readAsText"></span></p>
-    <details>
-      <summary>איך לגרום לו לקרוא נכון</summary>
-      <ul class="tips">
-        <li>השרת מנקד בעצמו ומוחק ניקוד שמוסיפים, אז ניקוד לא עוזר. מה שכן עוזר הוא כתיב מלא: <b>אימא, כול, שולחן, תוכנית</b> במקום אמא, כל, שלחן, תכנית.</li>
-        <li>מילה שהוא קורא לא נכון: כתוב אותה כמו שהיא נשמעת. למשל <b>סיפר</b> במקום ספר כשהכוונה לפועל.</li>
-        <li>שמות ומילים לועזיות: כתוב פונטית, למשל <b>אייפון</b>, <b>וואטסאפ</b>.</li>
-        <li>משפטים קצרים עם פסיקים נקראים טוב יותר ממשפט ארוך אחד.</li>
-        <li>מספרים: כתוב במילים (<b>עשרים ושלוש</b> ולא 23).</li>
-      </ul>
-    </details>
-    <details>
-      <summary>כיוון עדין <span class="sum-note" id="vsNote"></span></summary>
-      <div class="panel">
-        <div class="tune-top"><span class="hint">הערכים נשמרים לכל קול בנפרד.</span>
-          <button class="btn" type="button" data-rec-all="tts">כיוון הכול למומלץ</button></div>
-        <div class="slider"><label for="exag">הבעה</label><output id="exagOut">0.5</output>
-          <input type="range" id="exag" min="0.25" max="2" step="0.05" value="0.5">
-          <p class="rec">כמה רגש. נמוך רגוע, גבוה דרמטי. <button type="button" class="rec-btn" data-set="exag" data-val="0.5">מומלץ: 0.5</button></p></div>
-        <div class="slider"><label for="pace">קצב ויציבות</label><output id="paceOut">0.5</output>
-          <input type="range" id="pace" min="0.2" max="1" step="0.05" value="0.5">
-          <p class="rec">נמוך איטי וברור יותר, גבוה מהיר יותר. <button type="button" class="rec-btn" data-set="pace" data-val="0.5">מומלץ: 0.5</button></p></div>
-        <div class="slider"><label for="temp">גיוון</label><output id="tempOut">0.8</output>
-          <input type="range" id="temp" min="0.3" max="1.5" step="0.05" value="0.8">
-          <p class="rec">נמוך יציב, גבוה חי יותר אבל עלול לשבש מילים. <button type="button" class="rec-btn" data-set="temp" data-val="0.8">מומלץ: 0.8</button></p></div>
-      </div>
-    </details>
-  </section>
-
-  <section id="vcPanel" hidden aria-labelledby="h-vc">
-    <span class="mode-tag">הקלטה לקול אחר</span>
-    <h2 id="h-vc">ההקלטה שלך <small>אחרי חיתוך: עד 60 שניות</small></h2>
-    <div class="panel">
-      <p class="hint" style="margin:0">הקלט או העלה הקלטה. הקול שבחרת יגיד בדיוק את אותן מילים, באותו קצב ובאותה אינטונציה.</p>
+    <!-- voice conversion -->
+    <section id="vcPanel" class="card" hidden aria-labelledby="h-vc">
+      <div class="card-head"><h2 id="h-vc">ההקלטה שלך</h2><small>עד 60 שניות אחרי חיתוך</small></div>
+      <p class="hint">הקול שבחרת יגיד בדיוק את אותן מילים, באותו קצב ובאותה אינטונציה.</p>
       <div class="row">
         <button class="btn" id="vcRecBtn" type="button">הקלטה</button>
-        <label class="btn" for="vcFile" id="vcUpLabel" style="display:inline-block">העלאת הקלטה</label>
+        <label class="btn" for="vcFile" id="vcUpLabel">העלאת קובץ</label>
         <input type="file" id="vcFile" accept="audio/*,video/*" hidden>
       </div>
       <p class="status" id="vcStatus">עוד לא נבחרה הקלטה.</p>
       <audio id="vcPreview" controls hidden></audio>
       <div class="trim" id="vcTrim" hidden></div>
       <div class="row" id="vcClearRow" hidden>
-        <button class="btn" id="vcClear" type="button">מחיקת ההקלטה והתחלה מחדש</button>
-        <button class="btn" id="sttBtn" type="button">תמלול ההקלטה</button>
+        <button class="btn" id="sttBtn" type="button">תמלול</button>
+        <button class="btn danger-text" id="vcClear" type="button">מחיקה והתחלה מחדש</button>
       </div>
       <div class="stt" id="sttBox" hidden>
         <p class="group-label">התמלול</p>
@@ -147,14 +91,14 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
           <button class="btn" id="sttUse" type="button">שימוש כטקסט לקול</button>
         </div>
       </div>
-      <details>
-        <summary>כיוון עדין</summary>
+      <details class="disclosure">
+        <summary>כיוון המרה</summary>
         <div class="panel">
-          <div class="tune-top"><span class="hint">חל על המרה ועל דיבוב סרטון.</span>
-            <button class="btn" type="button" data-rec-all="vc">כיוון הכול למומלץ</button></div>
+          <div class="tune-top"><span class="hint">חל גם על דיבוב סרטון.</span>
+            <button class="btn sm" type="button" data-rec-all="vc">הכול למומלץ</button></div>
           <div class="slider"><label for="vcPitch">גובה הקול (חצאי טונים)</label><output id="vcPitchOut">0</output>
             <input type="range" id="vcPitch" min="-12" max="12" step="1" value="0">
-            <p class="rec">0 שומר על הגובה של הקול שנבחר. משנים רק אם הוא יוצא גבוה או נמוך מדי. <button type="button" class="rec-btn" data-set="vcPitch" data-val="0">מומלץ: 0</button></p></div>
+            <p class="rec">0 שומר על הגובה של הקול שנבחר. <button type="button" class="rec-btn" data-set="vcPitch" data-val="0">מומלץ: 0</button></p></div>
           <div class="slider"><label for="vcSteps">איכות</label><output id="vcStepsOut">25</output>
             <input type="range" id="vcSteps" min="10" max="50" step="5" value="25">
             <p class="rec">יותר איכות לוקח יותר זמן ויותר מהמכסה. <button type="button" class="rec-btn" data-set="vcSteps" data-val="25">מומלץ: 25</button></p></div>
@@ -162,53 +106,50 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
             <p class="rec">מסמנים רק לשירה, כדי לשמור על המנגינה. <button type="button" class="rec-btn" data-set="vcSing" data-val="off">מומלץ לדיבור: כבוי</button></p></div>
         </div>
       </details>
-    </div>
-  </section>
+    </section>
 
-  <section id="dubPanel" hidden aria-labelledby="h-dub">
-    <span class="mode-tag">דיבוב סרטון</span>
-    <h2 id="h-dub">הסרטון שלך <small>אחרי חיתוך: עד 60 שניות</small></h2>
-    <div class="panel">
-      <p class="hint" style="margin:0">העלה סרטון שמדברים בו. הדיבור יומר לקול שבחרת, והסרטון ייבנה מחדש עם הקול החדש.</p>
+    <!-- video dubbing -->
+    <section id="dubPanel" class="card" hidden aria-labelledby="h-dub">
+      <div class="card-head"><h2 id="h-dub">הסרטון שלך</h2><small>עד 60 שניות אחרי חיתוך</small></div>
+      <p class="hint">הדיבור יומר לקול שבחרת, והסרטון ייבנה מחדש עם הקול החדש.</p>
       <div class="row">
-        <label class="btn" for="dubFile" id="dubLabel" style="display:inline-block">העלאת סרטון</label>
+        <label class="btn" for="dubFile" id="dubLabel">העלאת סרטון</label>
         <input type="file" id="dubFile" accept="video/*" hidden>
-        <button class="btn" id="dubClear" type="button" hidden>מחיקה והתחלה מחדש</button>
+        <button class="btn danger-text" id="dubClear" type="button" hidden>מחיקה</button>
       </div>
       <video id="dubPreview" controls playsinline hidden></video>
       <div class="trim" id="dubTrim" hidden></div>
       <p class="status" id="dubStatus">עוד לא נבחר סרטון.</p>
-      <p class="hint" style="margin:0">שים לב: מוזיקת רקע ורעשים בסרטון המקורי לא נשמרים. בזמן הבנייה הסרטון מתנגן ברקע, אז השאר את המסך פתוח.</p>
-    </div>
-  </section>
+      <p class="hint">מוזיקת רקע מהסרטון המקורי לא נשמרת. בזמן הבנייה השאר את המסך פתוח.</p>
+    </section>
 
-  <section id="dlgPanel" hidden aria-labelledby="h-dlg">
-    <span class="mode-tag">דיאלוג</span>
-    <h2 id="h-dlg">תסריט <small class="count" id="dlgCount"></small></h2>
-    <p class="hint" style="margin:0 0 10px">כל שורה מתחילה בשם הדמות ונקודתיים. לכל דמות בוחרים קול.</p>
-    <textarea id="dlgText" maxlength="5000" aria-label="תסריט הדיאלוג">יואב: היי מאיה, שמעת שאפשר לשבט קולות מהטלפון?
+    <!-- dialogue -->
+    <section id="dlgPanel" class="card" hidden aria-labelledby="h-dlg">
+      <div class="card-head"><h2 id="h-dlg">תסריט</h2><small class="count" id="dlgCount"></small></div>
+      <p class="hint">כל שורה מתחילה בשם הדמות ונקודתיים.</p>
+      <textarea id="dlgText" maxlength="5000" aria-label="תסריט הדיאלוג">יואב: היי מאיה, שמעת שאפשר לשבט קולות מהטלפון?
 מאיה: באמת? ואיך זה נשמע בעברית?
 יואב: תקשיבי בעצמך, זה בדיוק מה שאת שומעת עכשיו.</textarea>
-    <p class="group-label" style="margin-top:14px">ליהוק</p>
-    <div class="cast" id="cast"></div>
-  </section>
+      <p class="group-label">ליהוק</p>
+      <div class="cast" id="cast"></div>
+    </section>
 
-  <section id="optsPanel" aria-labelledby="h-opts">
-    <h2 id="h-opts">הגדרות הפקה</h2>
-    <div class="panel">
-      <div>
-        <p class="group-label" id="varLabel">גרסאות לכל קטע</p>
-        <div class="seg-choice" role="radiogroup" aria-labelledby="varLabel">
+    <!-- production options -->
+    <section id="optsPanel" class="card" aria-labelledby="h-opts">
+      <div class="card-head"><h2 id="h-opts">הגדרות הפקה</h2></div>
+      <div class="seg-row">
+        <span id="varLabel">גרסאות לכל קטע</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="varLabel">
           <button type="button" class="chip" data-var="1" aria-pressed="true">1</button>
           <button type="button" class="chip" data-var="2" aria-pressed="false">2</button>
           <button type="button" class="chip" data-var="3" aria-pressed="false">3</button>
         </div>
-        <p class="hint" style="margin:6px 0 0">יותר גרסאות = יותר אפשרויות בחירה, אבל גם יותר זמן ויותר מהמכסה החינמית.</p>
       </div>
-      <details>
+      <p class="hint">יותר גרסאות נותנות יותר בחירה, אבל לוקחות יותר זמן ומכסה.</p>
+      <details class="disclosure">
         <summary>מילון הגייה <span class="sum-note" id="dictCount"></span></summary>
         <div class="panel">
-          <p class="hint" style="margin:0">מילה שנקראת לא נכון? כתוב אותה כמו שהיא נשמעת. ההחלפה קורית אוטומטית בכל הפקה, גם עם ו', ה', ב', ל' בתחילת המילה.</p>
+          <p class="hint">כתוב מילה כמו שהיא נשמעת. ההחלפה קורית בכל הפקה, גם עם ו', ה', ב', ל' בתחילת המילה.</p>
           <div class="dict-add">
             <input type="text" id="dictFrom" placeholder="כתוב בטקסט" aria-label="המילה כפי שהיא כתובה">
             <span aria-hidden="true">←</span>
@@ -218,82 +159,59 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
           <ul class="dict" id="dictList"></ul>
         </div>
       </details>
-    </div>
-  </section>
+    </section>
 
-  <section id="segPanel" hidden aria-labelledby="h-seg">
-    <h2 id="h-seg">עריכה לפי קטעים <small id="segInfo"></small></h2>
-    <p class="hint" style="margin:0 0 6px">קטע שלא יצא טוב? לחץ "הפקה מחדש" רק עליו, או בחר גרסה אחרת. הקובץ המלא מתעדכן לבד.</p>
-    <div id="segList"></div>
-    <div class="row" id="segResumeRow" hidden style="margin-top:12px">
-      <button class="btn primary" id="segResume" type="button">השלמת הקטעים החסרים</button>
-    </div>
-  </section>
-
-  <section aria-labelledby="h-takes">
-    <h2 id="h-takes">הקלטות <small>נשמרות רק במכשיר הזה</small></h2>
-    <div id="takes"><p class="empty">עוד אין הקלטות. בחר קול ולחץ על הכפתור למטה.</p></div>
-  </section>
-
-  <section aria-labelledby="h-theme">
-    <h2 id="h-theme">תצוגה</h2>
-    <div class="theme-choice" role="radiogroup" aria-labelledby="h-theme">
-      <button type="button" class="chip" data-theme-set="dark" aria-pressed="false">כהה</button>
-      <button type="button" class="chip" data-theme-set="light" aria-pressed="false">בהיר</button>
-      <button type="button" class="chip" data-theme-set="system" aria-pressed="false">לפי הגדרות המכשיר</button>
-    </div>
-  </section>
-
-  <section aria-labelledby="h-app">
-    <h2 id="h-app">אפליקציה וגיבוי</h2>
-    <div class="panel">
-      <div class="row" id="installRow" hidden>
-        <button class="btn primary" id="installBtn" type="button">התקנה כאפליקציה בטלפון</button>
+    <!-- segments -->
+    <section id="segPanel" class="card" hidden aria-labelledby="h-seg">
+      <div class="card-head"><h2 id="h-seg">עריכה לפי קטעים</h2><small id="segInfo"></small></div>
+      <p class="hint">קטע שלא יצא טוב? הפק מחדש רק אותו, או בחר גרסה אחרת. הקובץ המלא מתעדכן לבד.</p>
+      <div id="segList"></div>
+      <div class="row" id="segResumeRow" hidden>
+        <button class="btn primary" id="segResume" type="button">השלמת הקטעים החסרים</button>
       </div>
-      <p class="hint" id="installHint" style="margin:0">להתקנה: בכרום לוחצים על שלוש הנקודות ואז "הוספה למסך הבית" או "התקנת אפליקציה".</p>
-      <p class="hint" style="margin:0">הקולות וההקלטות שמורים רק בטלפון הזה. כדאי לשמור גיבוי מדי פעם, כדי שלא ילכו לאיבוד אם מנקים את הדפדפן או מחליפים טלפון.</p>
+    </section>
+
+    <!-- takes -->
+    <p class="group-title" id="h-takes">הקלטות</p>
+    <section class="card" aria-labelledby="h-takes">
+      <div id="takes"><p class="empty">עוד אין הקלטות.</p></div>
+    </section>
+    <p class="group-foot">ההקלטות נשמרות רק במכשיר הזה. גיבוי נמצא בהגדרות.</p>
+  </div>
+
+  <!-- ============ SETTINGS VIEW ============ -->
+  <div id="settingsView" class="view" hidden>
+    <p class="group-title" id="h-theme">תצוגה</p>
+    <section class="card" aria-labelledby="h-theme">
+      <div class="segmented wide" role="radiogroup" aria-labelledby="h-theme">
+        <button type="button" class="chip" data-theme-set="light" aria-pressed="false">בהיר</button>
+        <button type="button" class="chip" data-theme-set="dark" aria-pressed="false">כהה</button>
+        <button type="button" class="chip" data-theme-set="system" aria-pressed="false">לפי המכשיר</button>
+      </div>
+    </section>
+
+    <p class="group-title" id="h-app">אפליקציה וגיבוי</p>
+    <section class="card" aria-labelledby="h-app">
+      <div class="row" id="installRow" hidden>
+        <button class="btn primary" id="installBtn" type="button">התקנה כאפליקציה</button>
+      </div>
+      <p class="hint" id="installHint">להתקנה: בכרום, שלוש הנקודות ואז "הוספה למסך הבית" או "התקנת אפליקציה".</p>
       <div class="row">
         <button class="btn" id="backupBtn" type="button">שמירת גיבוי לקובץ</button>
-        <label class="btn" for="restoreIn" style="display:inline-block">שחזור מגיבוי</label>
+        <label class="btn" for="restoreIn">שחזור מגיבוי</label>
         <input type="file" id="restoreIn" accept=".koli,.json,application/json" hidden>
       </div>
-      <label class="switch" for="backupTakes"><input type="checkbox" id="backupTakes">לכלול גם את ההקלטות (קובץ גדול יותר)</label>
+      <label class="switch" for="backupTakes"><input type="checkbox" id="backupTakes">לכלול גם את ההקלטות</label>
       <p class="status" id="backupStatus"></p>
-    </div>
-  </section>
+    </section>
+    <p class="group-foot">הקולות וההקלטות שמורים רק בטלפון הזה. שמור גיבוי מדי פעם.</p>
 
-  <section aria-labelledby="h-srv">
-    <h2 id="h-srv">השרת שלי <small id="srvState">לא מוגדר</small></h2>
-    <div class="panel">
-      <p class="hint" style="margin:0">שרת פרטי משלך להקראת טקסט: בלי מכסה יומית ובחינם, אבל איטי יותר (דקה עד שתיים למשפט).</p>
-      <details>
-        <summary>איך יוצרים שרת משלך (3 דקות)</summary>
-        <ol class="tips" style="color:var(--ink)">
-          <li>היכנס לחשבון ב-Hugging Face, ואז פתח את <a href="https://huggingface.co/spaces/ResembleAI/Chatterbox-Multilingual-TTS-V3" target="_blank" rel="noopener">השרת המקורי</a>.</li>
-          <li>למעלה, ליד הכפתור Like, לחץ על <b>שלוש הנקודות ⋮</b> ובחר <b>Duplicate this Space</b>.</li>
-          <li>בחלון שנפתח: <b>Visibility</b> השאר <b>Public</b>. תחת <b>Hardware</b> בחר <b>CPU basic · FREE</b>.</li>
-          <li>לחץ <b>Duplicate Space</b>. ההתקנה לוקחת 5 עד 15 דקות. חכה עד שיופיע למעלה <b>Running</b>.</li>
-          <li>העתק את הכתובת מהדפדפן (מתחילה ב-huggingface.co/spaces/) והדבק כאן.</li>
-        </ol>
-      </details>
-      <label class="field" for="srvIn">כתובת השרת
-        <input type="text" id="srvIn" placeholder="huggingface.co/spaces/שם-משתמש/שם-השרת" dir="ltr" autocomplete="off">
-      </label>
-      <div class="row">
-        <button class="btn primary" id="srvSave" type="button">חיבור ובדיקה</button>
-        <button class="btn" id="srvClear" type="button">חזרה לשרת המשותף</button>
-      </div>
-      <p class="status" id="srvStatus"></p>
-    </div>
-  </section>
-
-  <section aria-labelledby="h-hf">
-    <h2 id="h-hf">חשבון Hugging Face <small id="hfState">לא מחובר</small></h2>
-    <div class="panel">
-      <p class="hint" style="margin:0">בלי חשבון, השרת החינמי נותן רק כמה הפקות ואז נחסם לזמן מה. עם חשבון חינמי יש מכסה גדולה יותר, ועם חשבון PRO הרבה יותר.</p>
-      <ol class="tips" style="color:var(--ink)">
+    <p class="group-title" id="h-hf">חשבון Hugging Face <small id="hfState">לא מחובר</small></p>
+    <section class="card" aria-labelledby="h-hf">
+      <p class="hint">עם חשבון חינמי יש מכסה יומית משלך. עם PRO המכסה גדולה בהרבה.</p>
+      <ol class="tips">
         <li>פתח חשבון חינמי ב-<a href="https://huggingface.co/join" target="_blank" rel="noopener">huggingface.co/join</a></li>
-        <li>צור טוקן ב-<a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a>: לחץ Create new token, בחר <b>Read</b>, תן שם ולחץ Create.</li>
+        <li>צור טוקן ב-<a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a>: Create new token, בחר <b>Read</b>, ואז Create.</li>
         <li>העתק את הטוקן (מתחיל ב-hf_) והדבק כאן.</li>
       </ol>
       <label class="field" for="hfToken">טוקן
@@ -303,13 +221,91 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
         <button class="btn primary" id="hfSave" type="button">שמירה</button>
         <button class="btn" id="hfClear" type="button">ניתוק</button>
       </div>
-      <p class="hint" style="margin:0">הטוקן נשמר רק בטלפון הזה ונשלח רק לשרת של Hugging Face.</p>
-    </div>
-  </section>
+    </section>
+    <p class="group-foot">הטוקן נשמר רק בטלפון הזה ונשלח רק ל-Hugging Face. הוא לא נכלל בגיבוי.</p>
 
-  <footer>מנועים: Chatterbox Multilingual, Seed-VC, Whisper ו-Resemble Enhance (קוד פתוח) דרך Hugging Face. לשימוש עם קולות שקיבלת עליהם הסכמה בלבד.</footer>
+    <p class="group-title" id="h-srv">שרת מותאם <small id="srvState">לא מוגדר</small></p>
+    <section class="card" aria-labelledby="h-srv">
+      <p class="hint">למתקדמים: חיבור לשרת הקראה משלך (Space של Chatterbox). Hugging Face דורשים מנוי PRO כדי ליצור שרת כזה.</p>
+      <label class="field" for="srvIn">כתובת השרת
+        <input type="text" id="srvIn" placeholder="huggingface.co/spaces/שם/שרת" dir="ltr" autocomplete="off">
+      </label>
+      <div class="row">
+        <button class="btn primary" id="srvSave" type="button">חיבור ובדיקה</button>
+        <button class="btn" id="srvClear" type="button">חזרה לשרת המשותף</button>
+      </div>
+      <p class="status" id="srvStatus"></p>
+    </section>
+
+    <p class="about">קולי · מנועים בקוד פתוח: Chatterbox, Seed-VC, Whisper ו-Resemble Enhance, דרך Hugging Face.<br>לשימוש רק עם קולות שקיבלת עליהם הסכמה.</p>
+  </div>
 </main>
 
+<!-- ============ SHEETS ============ -->
+<div class="scrim" id="scrim" hidden></div>
+
+<section class="sheet" id="voiceSheet" hidden role="dialog" aria-modal="true" aria-labelledby="h-voices">
+  <div class="grabber" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <span></span>
+    <h2 id="h-voices">בחירת קול</h2>
+    <button class="text-btn strong" type="button" data-close>סיום</button>
+  </div>
+  <div class="sheet-body">
+    <p class="group-title">הקולות שלי <small id="voiceCount"></small></p>
+    <div class="group voices" id="myVoices" role="group" aria-label="הקולות שלי"></div>
+    <div class="voice-actions" id="voiceActions" hidden>
+      <button class="btn sm" id="renameVoice" type="button">שינוי שם</button>
+      <button class="btn sm danger-text" id="delVoice" type="button">מחיקה</button>
+    </div>
+    <div class="rename" id="renameRow" hidden>
+      <input type="text" id="renameIn" maxlength="30" aria-label="שם חדש לקול">
+      <button class="btn primary" id="renameSave" type="button">שמירה</button>
+    </div>
+    <p class="group-title">קולות המערכת</p>
+    <div class="group voices" id="sysVoices" role="group" aria-label="קולות המערכת"></div>
+  </div>
+</section>
+
+<section class="sheet" id="addPanel" hidden role="dialog" aria-modal="true" aria-labelledby="h-add">
+  <div class="grabber" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <button class="text-btn" id="cancelAdd" type="button">ביטול</button>
+    <h2 id="h-add">קול חדש</h2>
+    <button class="text-btn strong" id="saveVoice" type="button" disabled>שמירה</button>
+  </div>
+  <div class="sheet-body">
+    <section class="card">
+      <label class="field" for="voiceName">שם הקול
+        <input type="text" id="voiceName" placeholder="למשל: הקול שלי" maxlength="30">
+      </label>
+    </section>
+    <p class="group-title">דגימה</p>
+    <section class="card">
+      <p class="hint">10–20 שניות של דיבור ברור, בלי מוזיקה ברקע.</p>
+      <div class="row">
+        <button class="btn" id="recBtn" type="button">הקלטה</button>
+        <label class="btn" for="fileIn">העלאת קובץ</label>
+        <input type="file" id="fileIn" accept="audio/*" hidden>
+      </div>
+      <p class="status" id="addStatus"></p>
+      <audio id="addPreview" controls hidden></audio>
+      <div class="trim" id="addTrim" hidden></div>
+      <div class="row" id="cleanRow" hidden>
+        <button class="btn" id="cleanBtn" type="button">ניקוי רעשי רקע</button>
+        <button class="btn" id="undoClean" type="button" hidden>חזרה למקור</button>
+      </div>
+    </section>
+    <section class="card">
+      <label class="switch consent" for="consent">
+        <input type="checkbox" id="consent">
+        <span>זה הקול שלי, או שיש לי הסכמה מפורשת של בעל הקול לשבט אותו.</span>
+      </label>
+    </section>
+  </div>
+</section>
+
+<!-- ============ STATUS + ACTION + TABS ============ -->
 <div class="banner" id="banner" role="status" aria-live="polite" hidden>
   <div class="bn-icon" aria-hidden="true"><span class="bn-spin"></span><span class="bn-mark"></span></div>
   <div class="bn-body">
@@ -319,9 +315,24 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
   <button class="bn-close" id="bnClose" type="button" aria-label="סגירה">×</button>
   <div class="bn-track" aria-hidden="true"><i></i></div>
 </div>
-<div class="bar"><button class="btn primary" id="genBtn" type="button">הפקה</button></div>
 
-<script type="module" src="app.js?v=3"></script>
+<div class="dock">
+  <div class="action" id="actionBar"><button class="btn primary big" id="genBtn" type="button">הפקה</button></div>
+  <nav class="tabbar" role="tablist" aria-label="ניווט">
+    <button class="mode" role="tab" id="mode-tts" data-mode="tts" type="button" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 11h10M4 16h7"/><path d="M17 13v6M20 14.5v3M14 15v1"/></svg><span>טקסט</span></button>
+    <button class="mode" role="tab" id="mode-vc" data-mode="vc" type="button" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="6" height="11" rx="3"/><path d="M3 11a5 5 0 0 0 10 0M8 16v4"/><path d="M15 8l3 3-3 3M18 11h3"/></svg><span>המרה</span></button>
+    <button class="mode" role="tab" id="mode-dub" data-mode="dub" type="button" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2v8l-4-2"/><path d="M8 10v4M11 9v6"/></svg><span>דיבוב</span></button>
+    <button class="mode" role="tab" id="mode-dlg" data-mode="dlg" type="button" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M19 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-4-3h-3"/></svg><span>דיאלוג</span></button>
+    <button class="mode" role="tab" id="tab-settings" data-mode="settings" type="button" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg><span>הגדרות</span></button>
+  </nav>
+</div>
+
+<script type="module" src="app.js?v=4"></script>
 <script>
 if("serviceWorker" in navigator){ addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 </script>

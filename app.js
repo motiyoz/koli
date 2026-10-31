@@ -109,7 +109,7 @@ function voiceBtn(v){
   const n=document.createElement("b"); n.textContent=v.name;
   const sp=document.createElement("span"); sp.className="n"; sp.textContent = v.builtin ? v.note : `דגימה של ${v.secs.toFixed(0)} שנ'`;
   b.append(av,n,sp);
-  b.onclick=()=>{ selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{} renderVoices(); loadVS(); };
+  b.onclick=()=>{ selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{} renderVoices(); loadVS(); setTimeout(()=>closeSheet("voiceSheet"),180); };
   return b;
 }
 function renderVoices(){
@@ -120,7 +120,8 @@ function renderVoices(){
   SYSTEM.forEach(v=>sys.append(voiceBtn(v)));
   $("voiceCount").textContent = `${mine.length} שלך · ${SYSTEM.length} של המערכת`;
   const cur=voices.find(v=>v.id===selected);
-  $("curName").textContent = cur ? (cur.builtin ? `${cur.name} (${cur.note})` : cur.name) : "";
+  $("curName").textContent = cur ? cur.name : "";
+  if(cur){ const av=$("voiceRowAv"); let hh=0; for(const c of cur.name) hh=(hh*31+c.codePointAt(0))%360; av.style.setProperty("--h",hh); av.textContent=[...cur.name.trim()][0]||"?"; }
   $("voiceActions").hidden = !cur || !!cur.builtin;
   $("renameRow").hidden = true;
   const rm=$("delVoice"); rm.dataset.armed=""; rm.textContent="מחיקה";
@@ -220,8 +221,27 @@ function showAddPreview(){
   if(addBlob){ pv.src=URL.createObjectURL(addBlob); pv.hidden=false; $("cleanRow").hidden=false; $("undoClean").hidden=!addOrig; }
   else { pv.removeAttribute("src"); pv.hidden=true; $("cleanRow").hidden=true; addTrim.clear(); }
 }
-function openAdd(){ $("addPanel").hidden=false; pending=null; addBuf=null; addBlob=null; addOrig=null; showAddPreview(); $("voiceName").value=""; $("consent").checked=false; updateSave(); $("addPanel").scrollIntoView({behavior:"smooth"}); }
-$("cancelAdd").onclick=()=>{ stopRec(); $("addPanel").hidden=true; };
+/* sheets */
+let sheetStack=[];
+function openSheet(id){
+  const el=$(id); if(!el.hidden) return;
+  sheetStack.push(id); el.hidden=false; el.classList.remove("closing");
+  $("scrim").hidden=false; document.body.classList.add("sheet-open");
+}
+function closeSheet(id){
+  const el=$(id); if(el.hidden) return;
+  el.classList.add("closing");
+  setTimeout(()=>{ el.hidden=true; el.classList.remove("closing"); },200);
+  sheetStack=sheetStack.filter(x=>x!==id);
+  if(!sheetStack.length){ $("scrim").hidden=true; document.body.classList.remove("sheet-open"); }
+}
+$("scrim").onclick=()=>{ const top=sheetStack[sheetStack.length-1]; if(top==="addPanel") $("cancelAdd").click(); else if(top) closeSheet(top); };
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeSheet(b.closest(".sheet").id));
+addEventListener("keydown",e=>{ if(e.key==="Escape" && sheetStack.length) $("scrim").click(); });
+$("voiceRow").onclick=()=>openSheet("voiceSheet");
+
+function openAdd(){ closeSheet("voiceSheet"); openSheet("addPanel"); pending=null; addBuf=null; addBlob=null; addOrig=null; showAddPreview(); $("voiceName").value=""; $("consent").checked=false; updateSave(); }
+$("cancelAdd").onclick=()=>{ stopRec(); closeSheet("addPanel"); };
 function setAdd(msg,cls=""){ const s=$("addStatus"); s.textContent=msg; s.className="status "+cls; }
 function updateSave(){ $("saveVoice").disabled = !(pending && $("consent").checked && $("voiceName").value.trim()); }
 ["consent","voiceName"].forEach(id=>$(id).addEventListener("input",updateSave));
@@ -259,7 +279,7 @@ $("recBtn").onclick=()=> rec ? stopRec() : startRec();
 $("saveVoice").onclick=async()=>{
   const v={ id:"v"+Date.now(), name:$("voiceName").value.trim(), wav:pending.wav, secs:Math.min(pending.secs,20), created:Date.now(), consent:true };
   await put("voices",v); selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{}
-  $("addPanel").hidden=true; await loadVoices();
+  closeSheet("addPanel"); await loadVoices(); setGen(`הקול "${v.name}" נשמר ונבחר.`,"ok");
 };
 
 /* ---------- state ---------- */
@@ -910,9 +930,16 @@ async function runDub(){
 }
 
 /* ---------- modes ---------- */
+const MODE_TITLE={tts:"טקסט לקול", vc:"הקלטה לקול אחר", dub:"דיבוב סרטון", dlg:"דיאלוג", settings:"הגדרות"};
 function setMode(m){
-  mode=m;
   document.querySelectorAll(".mode").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.mode===m)));
+  $("pageTitle").textContent=MODE_TITLE[m];
+  const settings = m==="settings";
+  $("workView").hidden=settings; $("settingsView").hidden=!settings; $("actionBar").hidden=settings;
+  document.body.classList.toggle("settings",settings);
+  scrollTo({top:0});
+  if(settings) return;
+  mode=m;
   $("ttsPanel").hidden = m!=="tts"; $("vcPanel").hidden = m!=="vc"; $("dubPanel").hidden = m!=="dub"; $("dlgPanel").hidden = m!=="dlg";
   $("optsPanel").hidden = !(m==="tts"||m==="dlg");
   $("genBtn").textContent = MODE_LABEL[m];
@@ -920,6 +947,7 @@ function setMode(m){
   if(m==="dlg") renderCast();
   renderSegs(); count();
 }
+addEventListener("scroll",()=>document.querySelector(".topbar").classList.toggle("scrolled",scrollY>4),{passive:true});
 document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $("genBtn").onclick=()=> ({tts:runTTS, vc:runVC, dub:runDub, dlg:runDialog})[mode]();
 
@@ -985,7 +1013,7 @@ function applyTheme(t){
   try{ localStorage.setItem("koli.theme2",t); }catch{}
   document.querySelectorAll("[data-theme-set]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.themeSet===t)));
   const light = t==="light" || (t==="system" && matchMedia("(prefers-color-scheme: light)").matches);
-  document.querySelector('meta[name="theme-color"]').setAttribute("content", light ? "#f7f1ea" : "#0c0b12");
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", light ? "#f2f2f7" : "#000000");
 }
 document.querySelectorAll("[data-theme-set]").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeSet));
 matchMedia("(prefers-color-scheme: light)").addEventListener?.("change",()=>{ let t=null; try{t=localStorage.getItem("koli.theme2");}catch{} if(t==="system") applyTheme("system"); });
