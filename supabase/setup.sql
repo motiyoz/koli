@@ -197,5 +197,18 @@ create policy "media delete" on storage.objects for delete to authenticated
   using (bucket_id = 'media' and (
     (storage.foldername(name))[1] = auth.uid()::text or public.is_admin()));
 
+-- ---------- API access (works whether or not "expose new tables" was ticked) ----------
+grant usage on schema public to authenticated;
+grant select, update on public.profiles to authenticated;
+grant select, insert on public.consent_log to authenticated;
+grant usage, select on sequence public.consent_log_id_seq to authenticated;
+grant select, insert, update, delete on public.voices, public.takes, public.user_prefs to authenticated;
+grant select, insert, update on public.reports to authenticated;
+grant usage, select on sequence public.reports_id_seq to authenticated;
+grant execute on function public.is_admin(), public.is_approved(), public.accept_terms(text),
+  public.touch_last_seen(), public.delete_my_account() to authenticated;
+-- signed-out visitors get nothing
+revoke all on public.profiles, public.consent_log, public.voices, public.takes, public.user_prefs, public.reports from anon;
+
 -- done
 select 'Koli database is ready' as status;
