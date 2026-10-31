@@ -1,3 +1,5 @@
+import { cloud } from "./cloud.js?v=5";
+import { initAccount } from "./admin.js?v=5";
 
 const BASE = "https://resembleai-chatterbox-multilingual-tts-v3.hf.space";
 function myServer(){ try{ return localStorage.getItem("koli.server")||""; }catch{ return ""; } }
@@ -24,20 +26,24 @@ function db(){
   });
   return dbp;
 }
-async function all(store){
+async function localAll(store){
   const d = await db(); if(!d) return mem[store];
   return new Promise(res=>{ try{ const q=d.transaction(store).objectStore(store).getAll(); q.onsuccess=()=>res(q.result); q.onerror=()=>res(mem[store]); }catch{ res(mem[store]); } });
 }
-async function put(store,obj){
+async function localPut(store,obj){
   mem[store] = mem[store].filter(x=>x.id!==obj.id).concat(obj);
   const d = await db(); if(!d) return;
   try{ d.transaction(store,"readwrite").objectStore(store).put(obj); }catch{}
 }
-async function del(store,id){
+async function localDel(store,id){
   mem[store] = mem[store].filter(x=>x.id!==id);
   const d = await db(); if(!d) return;
   try{ d.transaction(store,"readwrite").objectStore(store).delete(id); }catch{}
 }
+
+async function all(store){ return cloud.active ? cloud.all(store) : localAll(store); }
+async function put(store,obj){ return cloud.active ? cloud.put(store,obj) : localPut(store,obj); }
+async function del(store,id){ return cloud.active ? cloud.del(store,id) : localDel(store,id); }
 
 /* ---------- audio helpers ---------- */
 function encodeWav(data, rate){
@@ -278,7 +284,9 @@ $("recBtn").onclick=()=> rec ? stopRec() : startRec();
 
 $("saveVoice").onclick=async()=>{
   const v={ id:"v"+Date.now(), name:$("voiceName").value.trim(), wav:pending.wav, secs:Math.min(pending.secs,20), created:Date.now(), consent:true };
-  await put("voices",v); selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{}
+  try{ await put("voices",v); }catch(e){ setAdd("השמירה נכשלה: "+errText(e),"err"); return; }
+  if(cloud.active) cloud.logConsent("voice_consent", v.id);
+  selected=v.id; try{localStorage.setItem("koli.voice",v.id);}catch{}
   closeSheet("addPanel"); await loadVoices(); setGen(`הקול "${v.name}" נשמר ונבחר.`,"ok");
 };
 
@@ -291,7 +299,7 @@ const ENH_BASE="https://resembleai-resemble-enhance.hf.space";
 const MODE_LABEL={tts:"הפקה", vc:"המרה לקול שנבחר", dub:"דיבוב הסרטון", dlg:"הפקת הדיאלוג"};
 const MODE_WORK={tts:"מפיק את הקול", vc:"ממיר את ההקלטה", dub:"מדבב את הסרטון", dlg:"מפיק את הדיאלוג"};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch{ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} } };
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch{ return d; } }, set(k,v){ const raw=JSON.stringify(v); try{ localStorage.setItem(k,raw); }catch{} cloud.savePref(k,raw); } };
 
 /* ---------- banner ---------- */
 let bnTimer=null;
@@ -952,7 +960,9 @@ document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>setMode(b.dataset.mo
 $("genBtn").onclick=()=> ({tts:runTTS, vc:runVC, dub:runDub, dlg:runDialog})[mode]();
 
 /* ---------- takes ---------- */
+async function ensureBlob(t){ if(!t.blob && t.url){ try{ t.blob=await (await fetch(t.url)).blob(); }catch{} } return t.blob; }
 async function shareTake(t){
+  await ensureBlob(t);
   const ext = t.kind==="video" ? (t.blob?.type.includes("mp4")?"mp4":"webm") : "wav";
   const name=`koli-${t.id}.${ext}`;
   try{
@@ -975,7 +985,8 @@ async function renderTakes(highlight, autoplay=true){
     const src = t.blob ? URL.createObjectURL(t.blob) : t.url; a.src=src;
     const row=document.createElement("div"); row.className="row";
     const sh=document.createElement("button"); sh.type="button"; sh.className="btn primary mini"; sh.textContent="שיתוף"; sh.onclick=()=>shareTake(t);
-    const dl=document.createElement("a"); dl.href=src; dl.download=`koli-${t.id}.${isVid?(t.blob?.type.includes("mp4")?"mp4":"webm"):"wav"}`; dl.textContent="הורדה";
+    const dl=document.createElement("a"); dl.href=src;
+    if(!t.blob) dl.onclick=async ev=>{ ev.preventDefault(); const b=await ensureBlob(t); if(!b) return; const u=URL.createObjectURL(b); const x=document.createElement("a"); x.href=u; x.download=dl.download; document.body.append(x); x.click(); x.remove(); setTimeout(()=>URL.revokeObjectURL(u),20000); }; dl.download=`koli-${t.id}.${isVid?(t.blob?.type.includes("mp4")?"mp4":"webm"):"wav"}`; dl.textContent="הורדה";
     const rm=document.createElement("button"); rm.type="button"; rm.className="btn mini"; rm.textContent="מחיקה";
     rm.onclick=async()=>{ await del("takes",t.id); renderTakes(); };
     row.append(sh,dl,rm); d.append(p,a,row); box.append(d);
@@ -1065,8 +1076,8 @@ $("backupBtn").onclick=async()=>{
     const tk=withTakes ? await all("takes") : [];
     const ls={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith("koli.") && k!=="koli.hf") ls[k]=localStorage.getItem(k); } }catch{}
     const data={ app:"koli", version:1, created:new Date().toISOString(),
-      voices: await Promise.all(vs.map(async v=>({...v, wav: await blobToB64(v.wav)}))),
-      takes: await Promise.all(tk.filter(t=>t.blob).map(async t=>({...t, url:undefined, blob: await blobToB64(t.blob)}))),
+      voices: await Promise.all(vs.filter(v=>v.wav).map(async v=>({...v, path:undefined, wav: await blobToB64(v.wav)}))),
+      takes: (await Promise.all(tk.map(async t=>{ const b=await ensureBlob(t); return b ? {...t, url:undefined, path:undefined, blob: await blobToB64(b)} : null; }))).filter(Boolean),
       settings: ls };
     const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
     const d=new Date(); const name=`koli-backup-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}.koli`;
@@ -1100,4 +1111,39 @@ $("hfClear").onclick=()=>{ try{ localStorage.removeItem("koli.hf"); }catch{} hfU
 /* ---------- start ---------- */
 hfUi(); srvUi(); renderDict(); renderVariants(); markRec(); updateReadAs();
 { const m=store.get("koli.mode",null) ?? (()=>{ try{ return localStorage.getItem("koli.mode"); }catch{ return null; } })(); setMode(["tts","vc","dub","dlg"].includes(m)?m:"tts"); }
-loadVoices(); renderTakes(null,false);
+await cloud.ready;
+if(cloud.active){
+  try{ await cloud.loadPrefs(); }catch{}
+  dict=store.get("koli.dict",dict); castMap=store.get("koli.cast",castMap); variants=store.get("koli.variants",variants);
+  { const t=store.get("koli.dlg",null); if(t) dlgTa.value=t; }
+  renderDict(); renderVariants(); count();
+}
+initAccount();
+try{ await loadVoices(); }catch(e){ setGen("טעינת הקולות מהחשבון נכשלה: "+errText(e),"err"); }
+renderTakes(null,false).catch(e=>setGen("טעינת ההקלטות מהחשבון נכשלה: "+errText(e),"err"));
+if(cloud.active) checkMigration();
+
+/* ---------- move data from this phone into the account ---------- */
+async function checkMigration(){
+  try{
+    const key="koli.migrated."+cloud.user.id;
+    if(localStorage.getItem(key)==="done") return;
+    const lv=await localAll("voices"), lt=await localAll("takes");
+    if(!lv.length && !lt.length){ localStorage.setItem(key,"done"); return; }
+    const [cv,ct]=await Promise.all([cloud.ids("voices"),cloud.ids("takes")]);
+    const nv=lv.filter(v=>!cv.has(v.id) && v.wav), nt=lt.filter(t=>!ct.has(t.id) && t.blob);
+    if(!nv.length && !nt.length){ localStorage.setItem(key,"done"); return; }
+    $("migrateText").textContent=`בטלפון הזה שמורים ${nv.length} קולות ו-${nt.length} הקלטות שעוד לא נמצאים בחשבון ${cloud.user.email}. העלאה לחשבון שומרת אותם גם אם תחליף טלפון.`;
+    $("migrateCard").hidden=false;
+    $("migrateLater").onclick=()=>{ $("migrateCard").hidden=true; };
+    $("migrateBtn").onclick=async()=>{
+      $("migrateBtn").disabled=true; let done=0, fail=0; const total=nv.length+nt.length;
+      const st=m=>{ const e=$("migrateStatus"); e.textContent=m; e.className="status"; };
+      for(const v of nv){ try{ await cloud.put("voices",{...v, path:undefined}); cloud.logConsent("voice_consent", v.id); done++; }catch{ fail++; } st(`מעלה… ${done+fail} מתוך ${total}`); }
+      for(const t of nt){ try{ await cloud.put("takes",{...t, path:undefined}); done++; }catch{ fail++; } st(`מעלה… ${done+fail} מתוך ${total}`); }
+      if(!fail){ localStorage.setItem(key,"done"); $("migrateCard").hidden=true; setGen(`הועלו לחשבון ${done} פריטים. הם נשארים גם בטלפון כגיבוי.`,"ok"); }
+      else { const e=$("migrateStatus"); e.textContent=`הועלו ${done}, נכשלו ${fail}. אפשר ללחוץ שוב כדי לנסות את מה שנכשל.`; e.className="status err"; $("migrateBtn").disabled=false; }
+      await loadVoices(); renderTakes(null,false);
+    };
+  }catch{}
+}

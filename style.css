@@ -287,3 +287,45 @@ body.has-banner{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}
 @keyframes recPulse{50%{opacity:.6}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (min-width:700px){ .large-title{font-size:34px} }
+
+/* ---------- login gate ---------- */
+html.gated body > :not(.gate){visibility:hidden}
+.gate{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:auto;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
+.gate-box{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.gate-box > div{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
+.gate-logo{border-radius:18px;box-shadow:0 8px 24px rgba(228,81,27,.25)}
+.gate-title{margin:0;font-size:30px;font-weight:700}
+.gate-box h2{margin:6px 0 0;font-size:22px;font-weight:700}
+.gate-sub{margin:0;color:var(--muted);font-size:16px;overflow-wrap:anywhere}
+.gate-sub b{color:var(--ink)}
+.fine{margin:0;font-size:13px;color:var(--faint)}
+.btn.google{width:100%;min-height:52px;background:var(--card);color:var(--ink);font-size:16px;border:1px solid var(--sep);box-shadow:var(--shadow);gap:10px}
+.btn.google svg{width:22px;height:22px}
+.gate-list{margin:0;padding:14px 16px 14px 14px;padding-inline-start:30px;text-align:right;background:var(--card);border-radius:var(--r);display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--muted);width:100%}
+.gate-list b{color:var(--ink);font-weight:600}
+.gate-accept{text-align:right;background:var(--card);border-radius:var(--r);padding:12px 14px;width:100%}
+.gate-accept span{font-size:14px}
+
+/* ---------- account / admin ---------- */
+.acct{display:flex;align-items:center;gap:12px}
+.acct img{border-radius:50%;background:var(--fill);flex:none;object-fit:cover}
+.acct-main{display:flex;flex-direction:column;min-width:0}
+.acct-main b{font-weight:600}
+.acct-main small{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.badge{margin-inline-start:auto;font-size:12px;font-weight:600;color:var(--tint);background:var(--tint-soft);padding:3px 9px;border-radius:999px}
+.admin-list{display:flex;flex-direction:column}
+.admin-list:empty::after{content:"אין כאן כלום כרגע.";color:var(--muted);font-size:14px;text-align:center;padding:10px 0}
+.au{padding:12px 0;border-bottom:.5px solid var(--sep);display:flex;flex-direction:column;gap:8px}
+.au:last-child{border-bottom:0}
+.au-top{display:flex;align-items:center;gap:10px}
+.au-top img{width:36px;height:36px;border-radius:50%;background:var(--fill);flex:none;object-fit:cover}
+.au-main{display:flex;flex-direction:column;min-width:0;flex:1}
+.au-main b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.au-main small{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+.au .row .btn{min-height:34px;padding:6px 12px;font-size:14px;flex:0 1 auto}
+.au-content{background:var(--card2);border-radius:var(--r-sm);padding:10px;display:flex;flex-direction:column;gap:8px}
+.au-item{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);padding-bottom:8px;border-bottom:.5px solid var(--sep)}
+.au-item:last-child{border-bottom:0;padding-bottom:0}
+.au-item .row{justify-content:space-between}
+.migrate{border:1.5px solid var(--tint)}
