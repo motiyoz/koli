@@ -509,14 +509,14 @@ function renderVariants(){ document.querySelectorAll("[data-var]").forEach(b=>b.
 document.querySelectorAll("[data-var]").forEach(b=>b.onclick=()=>{ variants=+b.dataset.var; store.set("koli.variants",variants); renderVariants(); count(); });
 
 /* ---------- projects: segment editor ---------- */
-const projects={tts:null, dlg:null};
-function currentProject(){ return projects[mode]||null; }
+const projects={tts:null, dlg:null, vc:null};
+function currentProject(){ if(mode==="vc" && typeof vcMode!=="undefined" && vcMode!=="clear") return null; return projects[mode]||null; }
 function renderSegs(activeIdx=-1){
   const proj=currentProject(); const panel=$("segPanel");
   panel.hidden=!proj; if(!proj) return;
   const list=$("segList"); list.textContent="";
   const missing=proj.segs.filter(s=>!s.variants.length).length;
-  $("segInfo").textContent = `${proj.segs.length} קטעים${missing?` · ${missing} חסרים`:""}`;
+  $("segInfo").textContent = `${proj.segs.length===1?"קטע אחד":proj.segs.length+" קטעים"}${missing?` · ${missing} חסרים`:""}`;
   $("segResumeRow").hidden = !missing || busy;
   proj.segs.forEach((sg,i)=>{
     const d=document.createElement("div"); d.className="seg"+(sg.variants.length?"":" missing")+(i===activeIdx?" active":"");
@@ -757,8 +757,8 @@ async function convertVoice(srcWav, v){
     try{ out=await callAny(mk(src,steps), sp.api, sp.fn, sp.cfg); }
     catch(e1){
       if(!/השרת דחה/.test(e1.message)) throw e1;
-      setGen(`השרת לא הצליח עם ${label}. מנסה שוב בהגדרה קלה יותר (איכות 10)…`);
-      try{ out=await callAny(mk(src,Math.min(10,steps)), sp.api, sp.fn, sp.cfg); }
+      setGen(`השרת לא הצליח עם ${label}. מנסה שוב…`);
+      try{ await wait(2500); out=await callAny(mk(src,steps), sp.api, sp.fn, sp.cfg); }
       catch(e2){ const e=new Error(`${errText(e2)}. נסה קטע קצר יותר, קול אחר מהקולות שלך, או חכה כמה דקות שהמכסה תתמלא.`); throw e; }
     }
     const url=audioUrl(out, sp.api);
@@ -775,13 +775,13 @@ async function takeVcSource(blob){
   try{
     setVc("מעבד את ההקלטה…");
     const buf=await decode(blob);
-    if(buf.duration<1){ setVc("ההקלטה קצרה מדי.","err"); vcSrc=null; return; }
+    if(buf.duration<0.8){ setVc("ההקלטה קצרה מדי.","err"); vcSrc=null; return; }
     if(buf.duration>600){ setVc("הקובץ ארוך מדי. העלה קובץ של עד 10 דקות.","err"); return; }
     vcBuf=buf; vcBlob=blob;
     const pv=$("vcPreview"); if(pv.src) URL.revokeObjectURL(pv.src); pv.src=URL.createObjectURL(blob); pv.hidden=false;
     vcTrim.set(buf,pv); vcSrc={secs:vcTrim.get().end-vcTrim.get().start};
-    $("vcClearRow").hidden=false; $("vcRecBtn").textContent="הקלטה חדשה"; $("vcUpLabel").textContent="העלאת קובץ אחר"; $("sttBox").hidden=true;
-    setVc(buf.duration>60 ? `ההקלטה באורך ${buf.duration.toFixed(0)} שניות. בחר בחיתוך קטע של עד 60 שניות.` : `הקלטה של ${buf.duration.toFixed(1)} שניות מוכנה. אפשר לחתוך אותה, ואז ללחוץ "המרה".`,"ok");
+    $("vcClearRow").hidden=false; $("vcRecBtn").textContent="הקלטה חדשה"; $("vcUpLabel").textContent="העלאת קובץ אחר"; $("sttBox").hidden=true; $("sttText").value=""; projects.vc=null; renderVcMode();
+    setVc(buf.duration>60 ? `ההקלטה באורך ${buf.duration.toFixed(0)} שניות. בחר בחיתוך קטע של עד 60 שניות.` : `הקלטה של ${buf.duration.toFixed(1)} שניות מוכנה. אפשר לחתוך אותה, ואז ללחוץ על הכפתור למטה.`,"ok");
   }catch{ vcSrc=null; setVc("לא הצלחתי לקרוא את הקובץ. נסה MP3, WAV, M4A או סרטון MP4.","err"); }
   count();
 }
@@ -803,11 +803,60 @@ $("vcClear").onclick=()=>{
   vcStop(); vcSrc=null; vcBuf=null; vcBlob=null; vcTrim.clear();
   const pv=$("vcPreview"); pv.pause(); if(pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute("src"); pv.hidden=true; $("vcClearRow").hidden=true; $("sttBox").hidden=true;
   $("vcRecBtn").textContent="הקלטה"; $("vcUpLabel").textContent="העלאת הקלטה";
+  $("sttText").value=""; projects.vc=null; renderVcMode();
   setVc("ההקלטה נמחקה. הקלט או העלה הקלטה חדשה."); count();
 };
 $("vcRecBtn").onclick=()=> vcRec ? vcStop() : vcStart();
 [["vcPitch","vcPitchOut"],["vcSteps","vcStepsOut"]].forEach(([i,o])=>{ $(i).oninput=()=>$(o).textContent=$(i).value; });
+let vcMode=store.get("koli.vcmode","clear");
+const VCM_HINT={
+  clear:"ההקלטה מתומללת לטקסט, ואז הקול שבחרת מקריא אותו. התוצאה הכי ברורה, אבל הקצב והאינטונציה לא נשמרים. אפשר לתקן את התמלול לפני ההקראה.",
+  natural:"הקול שבחרת אומר את אותן מילים, באותו קצב ובאותה אינטונציה. פחות ברור, במיוחד בהקלטות רועשות."
+};
+function renderVcMode(){
+  document.querySelectorAll("[data-vcm]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.vcm===vcMode)));
+  $("vcModeHint").textContent=VCM_HINT[vcMode];
+  if(mode==="vc") $("optsPanel").hidden = vcMode!=="clear";
+  if(mode==="vc") $("genBtn").textContent = vcMode==="clear" ? (sttReady() ? "הקראה בקול שנבחר" : "תמלול ובדיקה") : MODE_LABEL.vc;
+  renderSegs(); count();
+}
+function sttReady(){ return !$("sttBox").hidden && $("sttText").value.trim().length>0; }
+document.querySelectorAll("[data-vcm]").forEach(b=>b.onclick=()=>{ vcMode=b.dataset.vcm; store.set("koli.vcmode",vcMode); renderVcMode(); });
+$("sttText").addEventListener("input",()=>renderVcMode());
+
 async function runVC(){
+  if(vcMode==="clear") return runClear();
+  return runNatural();
+}
+async function transcribeSlice(){
+  stage="חיבור לשרת התמלול"; setGen("מתחבר לשרת התמלול…");
+  const sp=await connectSpace(STT_BASE, pickSTT, "שרת התמלול");
+  stage="העלאת ההקלטה"; const f=await upload((await vcSlice()).wav, sp.api, "audio.wav");
+  stage="תמלול"; setGen("מתמלל…");
+  const data=sp.params.map((p,i)=>{ const n=p.parameter_name||""; if(/task/.test(n)) return "transcribe"; if(i===0||/input|audio|file/.test(n)) return f; return p.parameter_default??null; });
+  const out=await callAny(data, sp.api, sp.fn, sp.cfg);
+  let t=Array.isArray(out)?out[0]:out; if(t&&typeof t==="object") t=t.value??JSON.stringify(t);
+  return (t||"").trim();
+}
+async function runClear(){
+  if(busy||!vcSrc) return;
+  if(!sttReady()){
+    busy=true; count(); const t0=Date.now(); const tick=ticker(t0,"מתמלל");
+    try{
+      const t=await transcribeSlice();
+      if(!t) throw new Error("לא זוהה דיבור בהקלטה");
+      $("sttText").value=t; $("sttBox").hidden=false;
+      setGen("בדוק את התמלול ותקן מילים אם צריך, ואז לחץ \"הקראה בקול שנבחר\".","ok");
+      $("sttBox").scrollIntoView({behavior:"smooth",block:"center"});
+    }catch(e){ delete spaces[STT_BASE]; showErr(e); }
+    finally{ clearInterval(tick); busy=false; renderVcMode(); }
+    return;
+  }
+  const text=$("sttText").value.trim(); const v=voiceById(selected);
+  const segs=splitText(prepText(text)).map(t=>({text:t, voiceId:v.id}));
+  await runProject("vc", segs, "המרה בהירה: "+(text.length>70?text.slice(0,70)+"…":text), 0.25);
+}
+async function runNatural(){
   if(busy||!vcSrc) return; busy=true; count();
   const v=voiceById(selected); const t0=Date.now(); let tick=null;
   try{
@@ -951,6 +1000,7 @@ function setMode(m){
   $("ttsPanel").hidden = m!=="tts"; $("vcPanel").hidden = m!=="vc"; $("dubPanel").hidden = m!=="dub"; $("dlgPanel").hidden = m!=="dlg";
   $("optsPanel").hidden = !(m==="tts"||m==="dlg");
   $("genBtn").textContent = MODE_LABEL[m];
+  if(m==="vc"){ setTimeout(renderVcMode,0); }
   try{ localStorage.setItem("koli.mode",m); }catch{}
   if(m==="dlg") renderCast();
   renderSegs(); count();

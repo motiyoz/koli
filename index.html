@@ -14,7 +14,7 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -124,7 +124,11 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
     <!-- voice conversion -->
     <section id="vcPanel" class="card" hidden aria-labelledby="h-vc">
       <div class="card-head"><h2 id="h-vc">ההקלטה שלך</h2><small>עד 60 שניות אחרי חיתוך</small></div>
-      <p class="hint">הקול שבחרת יגיד בדיוק את אותן מילים, באותו קצב ובאותה אינטונציה.</p>
+      <div class="segmented wide" role="radiogroup" aria-label="סוג המרה">
+        <button type="button" class="chip" data-vcm="clear" aria-pressed="true">בהירה (מומלץ)</button>
+        <button type="button" class="chip" data-vcm="natural" aria-pressed="false">שומרת אינטונציה</button>
+      </div>
+      <p class="hint" id="vcModeHint"></p>
       <div class="row">
         <button class="btn" id="vcRecBtn" type="button">הקלטה</button>
         <label class="btn" for="vcFile" id="vcUpLabel">העלאת קובץ</label>
@@ -153,9 +157,9 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
           <div class="slider"><label for="vcPitch">גובה הקול (חצאי טונים)</label><output id="vcPitchOut">0</output>
             <input type="range" id="vcPitch" min="-12" max="12" step="1" value="0">
             <p class="rec">0 שומר על הגובה של הקול שנבחר. <button type="button" class="rec-btn" data-set="vcPitch" data-val="0">מומלץ: 0</button></p></div>
-          <div class="slider"><label for="vcSteps">איכות</label><output id="vcStepsOut">25</output>
-            <input type="range" id="vcSteps" min="10" max="50" step="5" value="25">
-            <p class="rec">יותר איכות לוקח יותר זמן ויותר מהמכסה. <button type="button" class="rec-btn" data-set="vcSteps" data-val="25">מומלץ: 25</button></p></div>
+          <div class="slider"><label for="vcSteps">איכות (בהמרה ששומרת אינטונציה)</label><output id="vcStepsOut">30</output>
+            <input type="range" id="vcSteps" min="10" max="50" step="5" value="30">
+            <p class="rec">יותר איכות לוקח יותר זמן ויותר מהמכסה. <button type="button" class="rec-btn" data-set="vcSteps" data-val="30">מומלץ: 30</button></p></div>
           <div class="slider"><label class="switch" for="vcSing"><input type="checkbox" id="vcSing">זו הקלטה של שירה</label>
             <p class="rec">מסמנים רק לשירה, כדי לשמור על המנגינה. <button type="button" class="rec-btn" data-set="vcSing" data-val="off">מומלץ לדיבור: כבוי</button></p></div>
         </div>
@@ -425,7 +429,7 @@ if(t!=="system")document.documentElement.setAttribute("data-theme",t==="dark"?"d
   </nav>
 </div>
 
-<script type="module" src="app.js?v=5"></script>
+<script type="module" src="app.js?v=6"></script>
 <script>
 if("serviceWorker" in navigator){ addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 </script>
