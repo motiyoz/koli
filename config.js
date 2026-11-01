@@ -3,8 +3,8 @@
 // all access is protected by the row-level security rules in supabase/setup.sql.
 // While they are empty the site runs in local mode (no login, data stays on the phone).
 window.KOLI_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://nunlpwfbirligkuoriro.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_4dziyg1lBVSeLkqa5UuGqA_3hHyu3G0",
   ADMIN_EMAIL: "m0556763549@gmail.com",
   OPERATOR_NAME: "רועי חביב",
   CONTACT_EMAIL: "roeichaviv@gmail.com",
