@@ -1,5 +1,5 @@
-import { cloud } from "./cloud.js?v=5";
-import { initAccount } from "./admin.js?v=5";
+import { cloud } from "./cloud.js?v=6";
+import { initAccount } from "./admin.js?v=6";
 
 const BASE = "https://resembleai-chatterbox-multilingual-tts-v3.hf.space";
 function myServer(){ try{ return localStorage.getItem("koli.server")||""; }catch{ return ""; } }
@@ -98,12 +98,17 @@ const SYSTEM = [
 ];
 let mine = [], voices = [], selected = "default", pending = null;
 
-async function loadVoices(){
-  mine = (await all("voices")).sort((a,b)=>a.created-b.created);
+function applyVoices(){
   voices = [...mine, ...SYSTEM];
   try{ selected = localStorage.getItem("koli.voice") || selected; }catch{}
   if(!voices.find(v=>v.id===selected)) selected="default";
   renderVoices(); loadVS(); renderCast();
+}
+async function loadVoices(){
+  // draw the list (and the "add voice" button) right away, even before the account answers
+  applyVoices();
+  try{ mine = (await all("voices")).sort((a,b)=>a.created-b.created); }
+  finally{ applyVoices(); }
 }
 function voiceById(id){ return voices.find(v=>v.id===id) || SYSTEM[0]; }
 function voiceBtn(v){

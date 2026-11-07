@@ -1,5 +1,5 @@
 // Koli: account card, admin panel and abuse report (settings tab).
-import { cloud } from "./cloud.js?v=5";
+import { cloud } from "./cloud.js?v=6";
 const $ = id => document.getElementById(id);
 const C = window.KOLI_CONFIG || {};
 const fmtDate = s => s ? new Date(s).toLocaleString("he-IL",{dateStyle:"short",timeStyle:"short"}) : "—";

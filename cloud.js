@@ -94,7 +94,7 @@ cloud.all = async (store) => {
     if(error) throw error;
     return Promise.all(data.map(async r=>{
       let wav=wavCache.get(r.id);
-      if(!wav && r.path){ const { data:b } = await sb.storage.from("media").download(r.path); wav=b||null; if(b) wavCache.set(r.id,b); }
+      if(!wav && r.path){ try{ const { data:b } = await sb.storage.from("media").download(r.path); wav=b||null; if(b) wavCache.set(r.id,b); }catch{ wav=null; } }
       return { id:r.id, name:r.name, secs:r.secs||0, created:Date.parse(r.created_at), consent:!!r.consent_at, wav, path:r.path };
     }));
   }
