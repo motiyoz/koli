@@ -246,6 +246,7 @@ video{width:100%;border-radius:var(--r-sm);background:#000;max-height:55vh}
 .sheet-head > :first-child{justify-self:start}
 .sheet-head > :last-child{justify-self:end}
 .sheet-body{overflow:auto;padding:0 16px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain}
+.sheet-body>*{flex-shrink:0} /* lists inside a sheet must not be squeezed and clipped; the sheet scrolls instead */
 .sheet .card{background:var(--card)}
 :root[data-theme="dark"] .sheet .card,:root[data-theme="dark"] .sheet .group{background:var(--card2)}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sheet .card,:root:not([data-theme="light"]) .sheet .group{background:var(--card2)} }
