@@ -1028,6 +1028,43 @@ async function shareTake(t){
     setGen("השיתוף הישיר לא נתמך בדפדפן הזה. הורד את הקובץ ושלח אותו מהגלריה או מהקבצים.","err");
   }catch(e){ if(e?.name!=="AbortError") setGen("השיתוף נכשל: "+errText(e),"err"); }
 }
+/* ---------- download recordings as MP3 into the phone's Downloads ---------- */
+function saveFile(blob, name){
+  const u=URL.createObjectURL(blob); const x=document.createElement("a"); x.href=u; x.download=name;
+  document.body.append(x); x.click(); x.remove(); setTimeout(()=>URL.revokeObjectURL(u),20000);
+}
+let lamePromise=null;
+function loadLame(){
+  if(window.lamejs) return Promise.resolve(window.lamejs);
+  lamePromise ??= new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js";
+    sc.onload=()=>window.lamejs?ok(window.lamejs):bad(new Error("lame")); sc.onerror=()=>{ lamePromise=null; bad(new Error("lame")); }; document.head.append(sc); });
+  return lamePromise;
+}
+async function toMp3(blob){
+  const lame=await loadLame();
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  let buf; try{ buf=await ctx.decodeAudioData(await blob.arrayBuffer()); } finally{ ctx.close?.(); }
+  const ch=buf.numberOfChannels, n=buf.length, rate=buf.sampleRate;
+  const mono=new Float32Array(n);
+  for(let c=0;c<ch;c++){ const d=buf.getChannelData(c); for(let i=0;i<n;i++) mono[i]+=d[i]/ch; }
+  const pcm=new Int16Array(n); for(let i=0;i<n;i++){ const v=Math.max(-1,Math.min(1,mono[i])); pcm[i]=v<0?v*32768:v*32767; }
+  const enc=new lame.Mp3Encoder(1, rate, 128), parts=[];
+  for(let i=0;i<n;i+=1152){ const o=enc.encodeBuffer(pcm.subarray(i,i+1152)); if(o.length) parts.push(new Uint8Array(o)); }
+  const end=enc.flush(); if(end.length) parts.push(new Uint8Array(end));
+  return new Blob(parts,{type:"audio/mpeg"});
+}
+async function downloadMp3(t, el){
+  const label=el.textContent; el.textContent="מכין MP3…"; el.setAttribute("aria-busy","true");
+  try{
+    const b=t.blob || await ensureBlob(t); if(!b) throw new Error("הקובץ לא נמצא");
+    let mp3; try{ mp3=await toMp3(b); }
+    catch{ saveFile(b, `koli-${t.id}.wav`); setGen("לא הצלחתי להמיר ל-MP3 (צריך חיבור לאינטרנט בפעם הראשונה), אז ההקלטה נשמרה בהורדות כקובץ WAV.","err"); return; }
+    saveFile(mp3, `koli-${t.id}.mp3`);
+    setGen(`ההקלטה נשמרה בתיקיית ההורדות: koli-${t.id}.mp3`,"ok");
+  }catch(e){ setGen("ההורדה נכשלה: "+errText(e),"err"); }
+  finally{ el.textContent=label; el.removeAttribute("aria-busy"); }
+}
+
 async function renderTakes(highlight, autoplay=true){
   const list=(await all("takes")).sort((a,b)=>b.created-a.created).slice(0,30);
   const box=$("takes"); box.textContent="";
@@ -1040,8 +1077,14 @@ async function renderTakes(highlight, autoplay=true){
     const src = t.blob ? URL.createObjectURL(t.blob) : t.url; a.src=src;
     const row=document.createElement("div"); row.className="row";
     const sh=document.createElement("button"); sh.type="button"; sh.className="btn primary mini"; sh.textContent="שיתוף"; sh.onclick=()=>shareTake(t);
-    const dl=document.createElement("a"); dl.href=src;
-    if(!t.blob) dl.onclick=async ev=>{ ev.preventDefault(); const b=await ensureBlob(t); if(!b) return; const u=URL.createObjectURL(b); const x=document.createElement("a"); x.href=u; x.download=dl.download; document.body.append(x); x.click(); x.remove(); setTimeout(()=>URL.revokeObjectURL(u),20000); }; dl.download=`koli-${t.id}.${isVid?(t.blob?.type.includes("mp4")?"mp4":"webm"):"wav"}`; dl.textContent="הורדה";
+    const dl=document.createElement("a"); dl.href=src; dl.textContent="הורדה";
+    if(isVid){
+      dl.download=`koli-${t.id}.${t.blob?.type.includes("mp4")?"mp4":"webm"}`;
+      if(!t.blob) dl.onclick=async ev=>{ ev.preventDefault(); const b=await ensureBlob(t); if(b) saveFile(b, dl.download); };
+    } else {
+      dl.download=`koli-${t.id}.mp3`;
+      dl.onclick=async ev=>{ ev.preventDefault(); await downloadMp3(t, dl); };
+    }
     const rm=document.createElement("button"); rm.type="button"; rm.className="btn mini"; rm.textContent="מחיקה";
     rm.onclick=async()=>{ await del("takes",t.id); renderTakes(); };
     row.append(sh,dl,rm); d.append(p,a,row); box.append(d);
